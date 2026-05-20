@@ -1,0 +1,53 @@
+
+> pro-fattibilita@0.1.0 dev
+> next dev -H 127.0.0.1 -p 3003
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://127.0.0.1:3003
+- Network:       http://127.0.0.1:3003
+✓ Ready in 335ms
+
+ HEAD / 200 in 757ms (next.js: 231ms, application-code: 525ms)
+ GET / 200 in 315ms (next.js: 57ms, application-code: 257ms)
+ GET / 200 in 139ms (next.js: 3ms, application-code: 136ms)
+ GET / 200 in 118ms (next.js: 8ms, application-code: 110ms)
+✓ Compiled in 351ms
+✓ Compiled in 290ms
+✓ Compiled in 257ms
+ GET / 200 in 186ms (next.js: 17ms, application-code: 169ms)
+✓ Compiled in 173ms
+✓ Compiled in 139ms
+✓ Compiled in 243ms
+✓ Compiled in 172ms
+ GET / 200 in 206ms (next.js: 21ms, application-code: 185ms)
+✓ Compiled in 230ms
+ GET / 200 in 180ms (next.js: 21ms, application-code: 159ms)
+✓ Compiled in 242ms
+ GET / 200 in 172ms (next.js: 13ms, application-code: 159ms)
+ GET / 200 in 151ms (next.js: 6ms, application-code: 144ms)
+ GET / 200 in 97ms (next.js: 4ms, application-code: 94ms)
+ GET / 200 in 120ms (next.js: 7ms, application-code: 113ms)
+✓ Compiled in 257ms
+✓ Compiled in 276ms
+✓ Compiled in 274ms
+✓ Compiled in 125ms
+✓ Compiled in 174ms
+ GET / 200 in 184ms (next.js: 17ms, application-code: 167ms)
+✓ Compiled in 205ms
+ GET / 200 in 175ms (next.js: 16ms, application-code: 159ms)
+✓ Compiled in 314ms
+ GET / 200 in 150ms (next.js: 12ms, application-code: 138ms)
+✓ Compiled in 194ms
+ GET / 200 in 179ms (next.js: 15ms, application-code: 164ms)
+✓ Compiled in 241ms
+✓ Compiled in 252ms
+✓ Compiled in 236ms
+✓ Compiled in 239ms
+ GET / 200 in 187ms (next.js: 18ms, application-code: 169ms)
+ GET / 200 in 161ms (next.js: 6ms, application-code: 155ms)
+✓ Compiled in 356ms
+✓ Compiled in 254ms
+ GET / 200 in 196ms (next.js: 18ms, application-code: 178ms)
+✓ Compiled in 319ms
+ GET / 200 in 282ms (next.js: 67ms, application-code: 215ms)
+[?25h

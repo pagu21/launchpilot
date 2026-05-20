@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +23,290 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+
+@layer components {
+  .lp-card {
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(226 232 240);
+    background: #ffffff;
+    padding: 1rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  }
+
+  .lp-card-label {
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .lp-card-value {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(0.92rem, 1.65vw, 1.28rem);
+    line-height: 1.08;
+    font-weight: 650;
+    letter-spacing: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lp-card-value-sm {
+    display: block;
+    max-width: 100%;
+    font-size: clamp(0.88rem, 1.45vw, 1.08rem);
+    line-height: 1.12;
+    font-weight: 650;
+    letter-spacing: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lp-card-detail,
+  .lp-inline-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .grid > :is(.rounded-lg, .rounded-md, .lp-card),
+  .flex > :is(.rounded-lg, .rounded-md, .lp-card) {
+    min-width: 0;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    background-color: #fff7ed;
+    border-color: #fed7aa;
+    color: #0f172a;
+    box-shadow: inset 0 0 0 1px rgb(251 146 60 / 0.08);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  select:focus,
+  textarea:focus {
+    background-color: #ffffff;
+    border-color: #0f766e;
+    box-shadow: 0 0 0 3px rgb(20 184 166 / 0.16);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+    box-shadow: none;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: #0f766e;
+  }
+
+  .lp-editable-surface {
+    border-color: #fed7aa;
+    background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+    box-shadow: inset 0 0 0 1px rgb(251 146 60 / 0.08), 0 1px 2px rgb(15 23 42 / 0.05);
+  }
+
+  .overflow-x-auto {
+    position: relative;
+    scrollbar-gutter: stable;
+  }
+
+  .overflow-x-auto::before {
+    content: "⇆";
+    position: sticky;
+    left: calc(100% - 2.35rem);
+    top: 0.5rem;
+    z-index: 30;
+    display: inline-grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 0.45rem 0.45rem -2.2rem auto;
+    border-radius: 9999px;
+    background: rgb(15 118 110 / 0.92);
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    box-shadow: 0 10px 20px rgb(15 23 42 / 0.16);
+    pointer-events: none;
+  }
+}
+
+@media screen {
+  .lp-print-preview-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    border-radius: 0.75rem;
+    border: 1px solid #dbe3ef;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef4f8 100%);
+    padding: 1.5rem;
+  }
+
+  .lp-print-area {
+    display: block;
+    width: 980px;
+    min-height: 1386px;
+    margin: 0 auto;
+    overflow: visible;
+    border-radius: 0.25rem;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    padding: 64px;
+    box-shadow: 0 22px 60px rgb(15 23 42 / 0.18);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .lp-print-area h1 {
+    margin: 0 0 10px;
+    font-size: 30px;
+    line-height: 1.18;
+  }
+
+  .lp-print-area h2 {
+    margin: 28px 0 10px;
+    font-size: 21px;
+    line-height: 1.25;
+  }
+
+  .lp-print-area p {
+    margin: 0 0 18px;
+    color: #475569;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .lp-print-area table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    line-height: 1.35;
+  }
+
+  .lp-print-area th,
+  .lp-print-area td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .lp-print-area th {
+    background: #f1f5f9;
+    font-weight: 700;
+  }
+
+  .lp-print-area .print-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    min-height: 297mm;
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .lp-print-area,
+  .lp-print-area * {
+    visibility: visible;
+  }
+
+  .lp-print-preview-wrap {
+    visibility: visible;
+    display: block;
+  }
+
+  .lp-print-area {
+    display: block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 186mm;
+    min-height: 273mm;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: white;
+    color: #0f172a;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .lp-print-area h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+  }
+
+  .lp-print-area h2 {
+    margin: 22px 0 8px;
+    font-size: 18px;
+  }
+
+  .lp-print-area p {
+    margin: 0 0 16px;
+    color: #475569;
+  }
+
+  .lp-print-area table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    page-break-inside: avoid;
+  }
+
+  .lp-print-area th,
+  .lp-print-area td {
+    border: 1px solid #cbd5e1;
+    padding: 6px;
+    text-align: left;
+  }
+
+  .lp-print-area th {
+    background: #f1f5f9;
+  }
+
+  .overflow-x-auto::before {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+input[type="number"] {
+  appearance: textfield;
 }

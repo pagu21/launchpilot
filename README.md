@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Launch Pilot
 
-## Getting Started
+**Il futuro del tuo ristorante inizia qui**
 
-First, run the development server:
+Piattaforma SaaS per creare studi di prefattibilità economica e finanziaria per ristoranti con UX guidata, KPI visuali, simulazioni, cash flow e report PDF.
+
+## Stack
+
+- Next.js, React, TypeScript, Tailwind CSS
+- Supabase Auth, PostgreSQL, Row Level Security
+- Recharts
+- Stripe Checkout
+- PDF export con jsPDF/html2canvas
+- Deploy Vercel
+
+## Avvio locale
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Apri `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configurazione
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Copia `.env.example` in `.env.local`.
+2. Inserisci chiavi Supabase e Stripe.
+3. Per un progetto Supabase nuovo esegui `supabase/schema.sql` nel SQL editor Supabase.
+4. Per un database Supabase già creato, applica in ordine `supabase/migrations/20260517_align_operational_model.sql` e poi `supabase/migrations/20260517_explicit_data_api_grants.sql`.
+5. Configura su Vercel le stesse variabili ambiente.
 
-## Learn More
+Nota Supabase: le migrazioni includono `GRANT` espliciti per `authenticated` e `service_role`, necessari per esporre le tabelle del schema `public` alla Data API con RLS attivo.
 
-To learn more about Next.js, take a look at the following resources:
+## Moduli inclusi
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Dashboard KPI con semaforo sostenibilità.
+- Workflow guidato in 10 step.
+- Investimenti con IVA, categorie e ammortamenti.
+- Finanziamenti con rata, DSCR e simulazione bancaria.
+- Personale, incluso personale stagionale, costi variabili e acquisti dettagliati.
+- Scenari operativi con capienza annua, pranzo/cena, occupazione e ticket medio.
+- Workflow confermabile per step con costi collegati.
+- Break even dinamico e tabella redditività.
+- Cash flow mensile e alert liquidità.
+- AI Advisor rule-based pronto per evoluzione LLM.
+- Login, registrazione e recupero password tramite Supabase.
+- Endpoint Stripe checkout e report API.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Prossimi step prodotto
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Persistenza completa delle modifiche su Supabase.
+- Area Super Admin con gestione clienti.
+- Webhook Stripe per aggiornare `subscription_status`.
+- PDF server-side multi-pagina con template brandizzato.
+- Motore AI collegato ai dati reali del progetto.
