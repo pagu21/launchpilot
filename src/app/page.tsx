@@ -118,6 +118,7 @@ type RevenueChannel = {
   note: string;
 };
 type ReportBranding = { enabled: boolean; header: string; subHeader: string; logoUrl: string };
+type EffectiveReportBranding = ReportBranding & { profileLabel: string; editable: boolean; helper: string };
 type EsgProfile = {
   electricityKwhMonthly: number;
   gasCostMonthly: number;
@@ -703,6 +704,42 @@ function ChartShell() {
       Grafico in caricamento
     </div>
   );
+}
+
+function buildDefaultReportBranding(profile: UserProfileMode, venue: VenueProfile): EffectiveReportBranding {
+  if (profile === "master") {
+    return {
+      enabled: true,
+      editable: true,
+      profileLabel: "Profilo Master",
+      header: "Master Admin Suite",
+      subHeader: "Report generato per controllo interno e verifica progetto",
+      logoUrl: "/launch-pilot-logo.png",
+      helper: "Il profilo Master può predisporre report di controllo e verificare la coerenza dei documenti generati."
+    };
+  }
+
+  if (profile === "consulente") {
+    return {
+      enabled: true,
+      editable: true,
+      profileLabel: "Profilo Consulente",
+      header: "Studio consulenza ristorazione",
+      subHeader: "Analisi di prefattibilità predisposta con LaunchPilot",
+      logoUrl: "/launch-pilot-logo.png",
+      helper: "Il profilo Consulente può personalizzare intestazione e logo per produrre report professionali per i propri clienti."
+    };
+  }
+
+  return {
+    enabled: true,
+    editable: false,
+    profileLabel: "Profilo Ristoratore",
+    header: venue.restaurantFormat || "Progetto ristorante",
+    subHeader: `${venue.city || "Località da definire"} · ${venue.zone || "Zona da definire"} · Report operativo LaunchPilot`,
+    logoUrl: "/launch-pilot-logo.png",
+    helper: "Il profilo Ristoratore genera un report intestato al proprio progetto. Logo e intestazione consulente non sono mostrati."
+  };
 }
 
 export default function Home() {
@@ -1302,6 +1339,18 @@ export default function Home() {
   ];
 
   const canCustomizeReportBranding = userProfileMode === "consulente" || userProfileMode === "master" || userEmail.toLowerCase().includes("studio") || userEmail.toLowerCase().includes("consul");
+  const defaultReportBranding = buildDefaultReportBranding(userProfileMode, venueProfile);
+  const effectiveReportBranding: EffectiveReportBranding = {
+    ...defaultReportBranding,
+    ...(canCustomizeReportBranding
+      ? {
+          header: reportBranding.header || defaultReportBranding.header,
+          subHeader: reportBranding.subHeader || defaultReportBranding.subHeader,
+          logoUrl: reportBranding.logoUrl || defaultReportBranding.logoUrl,
+          editable: true
+        }
+      : {})
+  };
   const revenueChannelRows = revenueChannels.map((channel) => {
     const averageRevenueEffective = channel.key === "ordinary" ? inputs.averageTicket : channel.averageRevenue;
     const monthlyRevenue = channel.key === "ordinary" ? kpis.revenueMonthly : channel.monthlyOrders * averageRevenueEffective;
@@ -4257,8 +4306,8 @@ export default function Home() {
             </div>
 
             <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold text-slate-950">Intestazione report</p><p className="mt-1 text-xs leading-5 text-slate-500">Quando l&apos;accesso lo prevede, puoi inserire intestazione e logo nei report. L&apos;abilitazione viene letta dalle credenziali dell&apos;utente.</p></div><span className={"rounded-full px-3 py-1.5 text-xs font-semibold ring-1 " + (canCustomizeReportBranding ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-slate-100 text-slate-500 ring-slate-200")}>{canCustomizeReportBranding ? "Abilitato" : "Non abilitato"}</span></div>
-              {canCustomizeReportBranding ? (<><div className="mt-4 grid gap-3 md:grid-cols-4"><label className="text-sm font-medium text-slate-700 md:col-span-2">Logo URL<input value={reportBranding.logoUrl} onChange={(event) => setReportBranding((current) => ({ ...current, logoUrl: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700 md:col-span-2">Intestazione<input value={reportBranding.header} onChange={(event) => setReportBranding((current) => ({ ...current, header: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700 md:col-span-4">Sottotitolo<input value={reportBranding.subHeader} onChange={(event) => setReportBranding((current) => ({ ...current, subHeader: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none focus:border-teal-500" /></label></div><div className="mt-4 rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Anteprima intestazione</p><div className="mt-3 flex items-center gap-4"><Image src={reportBranding.logoUrl || "/launch-pilot-logo.png"} alt="Logo report" width={150} height={70} className="h-12 w-auto object-contain" /><div><p className="font-semibold text-slate-950">{reportBranding.header}</p><p className="text-sm text-slate-500">{reportBranding.subHeader}</p></div></div></div></>) : (<p className="mt-4 rounded-md bg-slate-100 p-3 text-xs leading-5 text-slate-500">Personalizzazione intestazione e logo non disponibile per questo accesso. In produzione questa abilitazione arriverà dalle credenziali dell&apos;utente.</p>)}
+              <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold text-slate-950">Intestazione report</p><p className="mt-1 text-xs leading-5 text-slate-500">{effectiveReportBranding.helper}</p></div><span className={"rounded-full px-3 py-1.5 text-xs font-semibold ring-1 " + (effectiveReportBranding.editable ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-sky-50 text-sky-700 ring-sky-200")}>{effectiveReportBranding.profileLabel}</span></div>
+              {effectiveReportBranding.editable ? (<><div className="mt-4 grid gap-3 md:grid-cols-4"><label className="text-sm font-medium text-slate-700 md:col-span-2">Logo URL<input value={reportBranding.logoUrl} onChange={(event) => setReportBranding((current) => ({ ...current, logoUrl: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700 md:col-span-2">Intestazione<input value={reportBranding.header} onChange={(event) => setReportBranding((current) => ({ ...current, header: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700 md:col-span-4">Sottotitolo<input value={reportBranding.subHeader} onChange={(event) => setReportBranding((current) => ({ ...current, subHeader: event.target.value }))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none focus:border-teal-500" /></label></div><div className="mt-4 rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Anteprima intestazione</p><div className="mt-3 flex items-center gap-4"><Image src={effectiveReportBranding.logoUrl || "/launch-pilot-logo.png"} alt="Logo report" width={150} height={70} className="h-12 w-auto object-contain" /><div><p className="font-semibold text-slate-950">{effectiveReportBranding.header}</p><p className="text-sm text-slate-500">{effectiveReportBranding.subHeader}</p></div></div></div></>) : (<div className="mt-4 rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Anteprima intestazione</p><div className="mt-3 flex items-center gap-4"><Image src={effectiveReportBranding.logoUrl || "/launch-pilot-logo.png"} alt="Logo report" width={150} height={70} className="h-12 w-auto object-contain" /><div><p className="font-semibold text-slate-950">{effectiveReportBranding.header}</p><p className="text-sm text-slate-500">{effectiveReportBranding.subHeader}</p></div></div></div>)}
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -4940,9 +4989,9 @@ export default function Home() {
                         <h1>{businessPlanAudience === "consulente" ? "Report di fattibilità economica" : "Business plan bancabile"}</h1>
                         <p style={{ margin: 0, color: "#334155", fontSize: 14 }}>{venueProfile.restaurantFormat} · {venueProfile.city} · {venueProfile.zone}</p>
                       </div>
-                      <Image src={canCustomizeReportBranding && reportBranding.logoUrl ? reportBranding.logoUrl : "/launch-pilot-logo.png"} alt="Logo report" width={150} height={70} style={{ height: 48, width: "auto", objectFit: "contain" }} />
+                      <Image src={effectiveReportBranding.logoUrl || "/launch-pilot-logo.png"} alt="Logo report" width={150} height={70} style={{ height: 48, width: "auto", objectFit: "contain" }} />
                     </div>
-                    {canCustomizeReportBranding ? <p style={{ marginTop: 10, marginBottom: 0, color: "#64748b", fontSize: 12 }}>{reportBranding.header} · {reportBranding.subHeader}</p> : null}
+                    <p style={{ marginTop: 10, marginBottom: 0, color: "#64748b", fontSize: 12 }}>{effectiveReportBranding.header} · {effectiveReportBranding.subHeader}</p>
                     <p style={{ marginTop: 12, marginBottom: 0, color: "#64748b", fontSize: 11 }}>{businessPlanAudience === "consulente" ? "Documento predisposto con taglio professionale per commercialisti, consulenti, revisori e advisor." : "Documento predisposto con taglio prudenziale per istituti di credito, investitori e partner finanziari."}</p>
                   </div>
 
