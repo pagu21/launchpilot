@@ -505,19 +505,25 @@ const createInitialWorkflowCosts = (): WorkflowCostRow[] =>
 
 const statusCopy = {
   green: {
-    label: "Sostenibile",
+    label: "Fattibile alle condizioni inserite",
+    shortLabel: "Fattibile",
     className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     dot: "bg-emerald-500",
+    explanation: "Il progetto appare economicamente fattibile solo se i parametri inseriti dal ristoratore vengono rispettati: ricavi, costi, personale, investimenti, rate e liquidità non devono peggiorare rispetto alle ipotesi considerate.",
   },
   yellow: {
     label: "Da ottimizzare",
+    shortLabel: "Da ottimizzare",
     className: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
+    explanation: "Il progetto può diventare fattibile, ma alcune ipotesi richiedono correzioni o verifiche prima di considerarlo economicamente sostenibile.",
   },
   red: {
     label: "Non sostenibile",
+    shortLabel: "Critico",
     className: "bg-rose-50 text-rose-700 ring-rose-200",
     dot: "bg-rose-500",
+    explanation: "Con i parametri attuali il progetto non appare economicamente sostenibile. Occorre rivedere ricavi, costi, investimenti, debito o liquidità prima di procedere.",
   },
 };
 
@@ -2757,14 +2763,18 @@ export default function Home() {
 
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold text-slate-950">Semaforo</p>
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className={`h-4 w-4 rounded-full ${status.dot}`} />
               <span
-                className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${status.className}`}
+                className={`max-w-full rounded-full px-3 py-1 text-sm font-semibold leading-5 ring-1 ${status.className}`}
+                title={status.explanation}
               >
-                {status.label}
+                {status.shortLabel}
               </span>
             </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              {status.explanation}
+            </p>
             <div className="mt-4">
               <div className="flex items-end justify-between">
                 <span className="text-xs font-semibold uppercase text-slate-400">
@@ -2815,8 +2825,8 @@ export default function Home() {
                 </p>
               </div>
               {activePage !== "workflow" ? (
-                <span className={"rounded-full px-3 py-1.5 text-sm font-semibold ring-1 " + status.className}>
-                  {status.label}
+                <span className={"max-w-full rounded-full px-3 py-1.5 text-sm font-semibold leading-5 ring-1 " + status.className} title={status.explanation}>
+                  {status.shortLabel}
                 </span>
               ) : null}
             </div>
@@ -4424,8 +4434,8 @@ export default function Home() {
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-lg bg-teal-50 p-4 ring-1 ring-teal-100">
                     <p className="text-xs font-semibold uppercase text-teal-600">Stato progetto</p>
-                    <p className="mt-2 text-xl font-semibold text-teal-950">{status.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-teal-700">Lettura sintetica di ricavi, costi, liquidità e debito.</p>
+                    <p className="mt-2 text-lg font-semibold leading-tight text-teal-950">{status.shortLabel}</p>
+                    <p className="mt-1 text-xs leading-5 text-teal-700">{status.explanation}</p>
                   </div>
                   <div className="rounded-lg bg-sky-50 p-4 ring-1 ring-sky-100">
                     <p className="text-xs font-semibold uppercase text-sky-600">Incasso minimo</p>
