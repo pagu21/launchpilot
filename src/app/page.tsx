@@ -2651,13 +2651,13 @@ export default function Home() {
               className="h-12 w-auto object-contain sm:h-14"
             />
           </div>
-          <nav className="hidden max-w-[560px] items-center gap-1 overflow-x-auto rounded-md bg-slate-100 p-1 xl:flex">
+          <nav className="hidden h-14 max-w-[620px] items-center gap-1 overflow-x-auto overflow-y-hidden rounded-md bg-slate-100 p-1 xl:flex">
             {visibleAppPages.map((page) => (
               <button
                 key={page.id}
                 type="button"
                 onClick={() => setActivePage(page.id)}
-                className={"shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition " + (activePage === page.id ? "bg-teal-600 text-white shadow-sm ring-1 ring-teal-700/10" : "text-slate-600 hover:bg-white hover:text-slate-950")}
+                className={"h-11 shrink-0 whitespace-nowrap rounded px-4 text-sm font-semibold leading-none transition " + (activePage === page.id ? "bg-teal-600 text-white shadow-sm ring-1 ring-teal-700/10" : "text-slate-600 hover:bg-white hover:text-slate-950")}
               >
                 {page.label}
               </button>
