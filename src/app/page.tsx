@@ -202,7 +202,7 @@ type VenueProfile = {
   zone: string;
   address: string;
   squareMeters: number;
-  footTraffic: "Basso" | "Medio" | "Alto" | "Molto alto";
+  footTraffic: string;
   target: "Residenti" | "Uffici" | "Turisti" | "Famiglie" | "Giovani" | "Business";
   cuisineType: string;
   restaurantFormat: string;
@@ -235,6 +235,7 @@ type WorkflowCostPreset = Omit<WorkflowCostRow, "id" | "stepIndex" | "enabled" |
 
 const cuisineTypePresets = ["Italiana", "Pizza", "Bistrot", "Pesce", "Fine dining", "Fast casual"];
 const restaurantFormatPresets = ["Ristorante tradizionale", "Pizzeria", "Bistrot", "Trattoria", "Delivery + sala", "Take away", "Bar con cucina", "Locale stagionale"];
+const zonePresets = ["Centro storico", "Zona turistica", "Zona uffici", "Quartiere residenziale", "Zona universitaria", "Centro commerciale", "Lungomare / area stagionale", "Periferia servita"];
 const serviceBandDefinitions: { key: ServiceBandKey; label: string; hours: number }[] = [
   { key: "breakfast", label: "Colazione", hours: 2 },
   { key: "lunch", label: "Pranzo", hours: 3 },
@@ -242,7 +243,7 @@ const serviceBandDefinitions: { key: ServiceBandKey; label: string; hours: numbe
   { key: "dinner", label: "Cena", hours: 3.5 },
 ];
 const roomSeasonPresets: VenueRoom["season"][] = ["Tutto l'anno", "Estate", "Inverno"];
-const footTrafficPresets: VenueProfile["footTraffic"][] = ["Basso", "Medio", "Alto", "Molto alto"];
+const footTrafficPresets = ["Limitato", "Discreto", "Buono", "Molto alto", "Molto alto turistico", "Forte presenza uffici", "Prevalentemente serale"];
 const targetPresets: VenueProfile["target"][] = ["Residenti", "Uffici", "Turisti", "Famiglie", "Giovani", "Business"];
 const weeklyClosingDays = ["Nessuno", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 const closingDayIndex: Record<string, number> = { "Domenica": 0, "Lunedì": 1, "Martedì": 2, "Mercoledì": 3, "Giovedì": 4, "Venerdì": 5, "Sabato": 6 };
@@ -973,7 +974,8 @@ export default function Home() {
   }, 0);
   const venuePeakSeats = venueRooms.reduce((sum, room) => sum + room.seats, 0);
   const venueActiveRooms = venueRooms.filter((room) => room.seats > 0).length;
-  const footTrafficScore = venueProfile.footTraffic === "Molto alto" ? 96 : venueProfile.footTraffic === "Alto" ? 82 : venueProfile.footTraffic === "Medio" ? 58 : 34;
+  const footTrafficSignal = venueProfile.footTraffic.toLowerCase();
+  const footTrafficScore = footTrafficSignal.includes("molto") ? 96 : footTrafficSignal.includes("buono") || footTrafficSignal.includes("alto") || footTrafficSignal.includes("uffici") ? 82 : footTrafficSignal.includes("discreto") || footTrafficSignal.includes("serale") ? 58 : 34;
   const sqmPerSeat = venuePeakSeats ? venueProfile.squareMeters / venuePeakSeats : 0;
   const spaceEfficiencyScore = sqmPerSeat >= 1.4 && sqmPerSeat <= 3.4 ? 82 : sqmPerSeat > 0 && sqmPerSeat < 1.2 ? 46 : 62;
   const targetFormatScore =
@@ -1106,7 +1108,7 @@ export default function Home() {
   const rentSustainabilityPct = kpis.revenueMonthly ? (estimatedRentMonthly / kpis.revenueMonthly) * 100 : 0;
   const rentSustainabilityScore = rentSustainabilityPct <= 8 ? 90 : rentSustainabilityPct <= 12 ? 72 : rentSustainabilityPct <= 16 ? 48 : 28;
   const zoneSignal = (venueProfile.zone + " " + venueProfile.address).toLowerCase();
-  const locationRiskPct = zoneSignal.includes("centr") || zoneSignal.includes("visibil") || zoneSignal.includes("turist") ? 24 : venueProfile.footTraffic === "Basso" ? 62 : 42;
+  const locationRiskPct = zoneSignal.includes("centr") || zoneSignal.includes("visibil") || zoneSignal.includes("turist") ? 24 : footTrafficScore <= 40 ? 62 : 42;
   const locationCompatibilityScore = Math.round((locationPotentialScore * 0.45) + (rentSustainabilityScore * 0.3) + (targetFormatScore * 0.25));
   const locationPotentialCopy = locationPotentialScore >= 76 ? "Potenziale alto" : locationPotentialScore >= 55 ? "Potenziale medio" : "Potenziale da verificare";
   const rentSustainabilityCopy = rentSustainabilityPct <= 10 ? "Affitto sostenibile" : rentSustainabilityPct <= 15 ? "Affitto da monitorare" : "Affitto pesante";
@@ -1713,7 +1715,7 @@ export default function Home() {
     minDscrRow.dscr >= 1.2 ? "Capacità di rimborso del debito in area presentabile." : null,
     ownCapitalCoveragePct >= 30 ? "Capitale proprio adeguato rispetto agli impieghi iniziali." : null,
     breakEvenCustomersDaily <= effectiveInputs.coversPerDay * 0.7 ? "Punto di pareggio coerente con i volumi del locale." : null,
-    venueProfile.footTraffic === "Alto" || venueProfile.footTraffic === "Molto alto" ? "Location con buon potenziale di passaggio." : null,
+    footTrafficScore >= 82 ? "Location con buon potenziale di passaggio." : null,
     aiStrengths[0]?.title ? "Indicatori gestionali positivi: " + aiStrengths[0].title.toLowerCase() + "." : null,
   ].filter(Boolean) as string[];
   const businessPlanIndex = [
@@ -3425,10 +3427,10 @@ export default function Home() {
               <div className="mb-5 grid gap-4 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <label className="text-sm font-medium text-slate-700">Città<input value={venueProfile.city} onChange={(event) => updateVenueProfile("city", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
-                  <label className="text-sm font-medium text-slate-700">Zona commerciale<input value={venueProfile.zone} onChange={(event) => updateVenueProfile("zone", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
+                  <label className="text-sm font-medium text-slate-700">Zona<input list="zone-presets" value={venueProfile.zone} onChange={(event) => updateVenueProfile("zone", event.target.value)} placeholder="Es. centro storico, zona uffici, quartiere residenziale..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="zone-presets">{zonePresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un valore preimpostato o scrivi liberamente la zona reale.</span></label>
                   <label className="text-sm font-medium text-slate-700">Indirizzo / riferimento<input value={venueProfile.address} onChange={(event) => updateVenueProfile("address", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
                   <label className="text-sm font-medium text-slate-700">Mq locale<input type="number" min="1" value={venueProfile.squareMeters} onChange={(event) => updateVenueProfile("squareMeters", Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-right outline-none transition focus:border-teal-500" /></label>
-                  <label className="text-sm font-medium text-slate-700">Passaggio<select value={venueProfile.footTraffic} onChange={(event) => updateVenueProfile("footTraffic", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{footTrafficPresets.map((preset) => <option key={preset}>{preset}</option>)}</select></label>
+                  <label className="text-sm font-medium text-slate-700">Flusso clienti potenziale<input list="foot-traffic-presets" value={venueProfile.footTraffic} onChange={(event) => updateVenueProfile("footTraffic", event.target.value)} placeholder="Es. buono, prevalentemente serale, forte presenza uffici..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="foot-traffic-presets">{footTrafficPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Indica quante persone passano o possono essere intercettate dalla location.</span></label>
                   <label className="text-sm font-medium text-slate-700">Target prevalente<select value={venueProfile.target} onChange={(event) => updateVenueProfile("target", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{targetPresets.map((preset) => <option key={preset}>{preset}</option>)}</select></label>
                   <label className="text-sm font-medium text-slate-700">Tipologia cucina<select value={venueProfile.cuisineType} onChange={(event) => updateVenueProfile("cuisineType", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{cuisineTypePresets.map((preset) => <option key={preset}>{preset}</option>)}</select></label>
                   <label className="text-sm font-medium text-slate-700">Format locale<input list="restaurant-format-presets" value={venueProfile.restaurantFormat} onChange={(event) => updateVenueProfile("restaurantFormat", event.target.value)} placeholder="Es. osteria moderna, pizzeria gourmet, bar pranzo veloce..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="restaurant-format-presets">{restaurantFormatPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un suggerimento o scrivi liberamente il format: verrà usato in analisi, scenari e report.</span></label>
