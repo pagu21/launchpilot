@@ -751,7 +751,7 @@ export default function Home() {
     efficientEquipmentPct: 54,
     staffWellbeingScore: 68,
   });
-  const [confirmedSteps, setConfirmedSteps] = useState<Record<number, boolean>>({ 0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true, 9: true });
+  const [confirmedSteps, setConfirmedSteps] = useState<Record<number, boolean>>({});
   const [venueProfile, setVenueProfile] = useState<VenueProfile>({
     city: "Milano",
     zone: "Centro / alta visibilità",
@@ -1847,7 +1847,31 @@ export default function Home() {
     return { ...scenario, totalCosts, totalCostsPct, resultAfterFinance };
   });
 
-  const completedStepsCount = Object.values(confirmedSteps).filter(Boolean).length;
+  function isWorkflowStepReady(stepIndex: number) {
+    if (stepIndex === 0) {
+      return Boolean(venueProfile.city && venueProfile.zone && venueProfile.squareMeters > 0 && venueProfile.cuisineType && venueProfile.restaurantFormat && effectiveOpeningDaysAnnual > 0 && venueRooms.some((room) => room.name && room.seats > 0));
+    }
+    if (stepIndex === 1) {
+      return investments.length > 0 && investments.every((item) => item.description.trim() && item.quantity > 0 && item.unitPrice >= 0);
+    }
+    if (stepIndex === 7) {
+      return revenueScenarios.length > 0 && revenueScenarios.every((scenario) =>
+        scenario.label.trim() &&
+        scenario.tone.trim() &&
+        effectiveOpeningDaysAnnual > 0 &&
+        venuePeakSeats > 0 &&
+        scenario.occupancyPct >= 0 &&
+        scenario.occupancyPct <= 100 &&
+        scenario.averageTicket > 0 &&
+        scenario.foodCostPct >= 0 &&
+        scenario.otherVariablePct >= 0
+      );
+    }
+    const stepRows = workflowCosts.filter((row) => row.stepIndex === stepIndex);
+    return stepRows.some((row) => row.enabled) && stepRows.filter((row) => row.enabled).every((row) => row.label.trim() && row.category.trim());
+  }
+
+  const completedStepsCount = workflowSteps.filter((_, index) => Boolean(confirmedSteps[index]) && isWorkflowStepReady(index)).length;
   const visibleAppPages = experienceMode === "simple"
     ? allAppPages.filter((page) => simpleAppPageIds.includes(page.id))
     : allAppPages;
@@ -2022,28 +2046,7 @@ export default function Home() {
     setBusinessPlanQuestion("");
   }
 
-  const isActiveStepReady = (() => {
-    if (activeStep === 0) {
-      return Boolean(venueProfile.city && venueProfile.zone && venueProfile.squareMeters > 0 && venueProfile.cuisineType && venueProfile.restaurantFormat && effectiveOpeningDaysAnnual > 0 && venueRooms.some((room) => room.name && room.seats > 0));
-    }
-    if (activeStep === 1) {
-      return investments.length > 0 && investments.every((item) => item.description.trim() && item.quantity > 0 && item.unitPrice >= 0);
-    }
-    if (activeStep === 7) {
-      return revenueScenarios.length > 0 && revenueScenarios.every((scenario) =>
-        scenario.label.trim() &&
-        scenario.tone.trim() &&
-        effectiveOpeningDaysAnnual > 0 &&
-        venuePeakSeats > 0 &&
-        scenario.occupancyPct >= 0 &&
-        scenario.occupancyPct <= 100 &&
-        scenario.averageTicket > 0 &&
-        scenario.foodCostPct >= 0 &&
-        scenario.otherVariablePct >= 0
-      );
-    }
-    return activeWorkflowRows.some((row) => row.enabled) && activeWorkflowRows.filter((row) => row.enabled).every((row) => row.label.trim() && row.category.trim());
-  })();
+  const isActiveStepReady = isWorkflowStepReady(activeStep);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMounted(true));
@@ -2627,7 +2630,7 @@ export default function Home() {
             </div>
             <div className="grid gap-1">
               {workflowSteps.map((step, index) => {
-                const confirmed = Boolean(confirmedSteps[index]);
+                const completed = Boolean(confirmedSteps[index]) && isWorkflowStepReady(index);
                 const current = activeStep === index;
                 return (
                   <button
@@ -2639,7 +2642,7 @@ export default function Home() {
                     className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition ${
                       current
                         ? "bg-teal-600 text-white shadow-sm ring-2 ring-teal-200"
-                        : confirmed
+                        : completed
                           ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
                     }`}
@@ -2647,7 +2650,7 @@ export default function Home() {
                     <span className="min-w-0 flex-1 truncate">{step}</span>
                     <span className="inline-flex shrink-0 items-center gap-1.5">
                       {current ? <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Attivo</span> : null}
-                      {confirmed ? (
+                      {completed ? (
                         <CheckCircle2 className="h-4 w-4" />
                       ) : (
                         <ChevronRight className="h-4 w-4" />
