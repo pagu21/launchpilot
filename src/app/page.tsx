@@ -395,6 +395,11 @@ const advancedPages: { id: AppPage; label: string; description: string }[] = [
 ];
 
 const allAppPages = [...appPages, ...advancedPages];
+const EXPERIENCE_MODE_STORAGE_KEY = "launch-pilot:experience-mode";
+type ExperienceMode = "simple" | "advanced";
+
+const simpleAppPageIds: AppPage[] = ["dashboard", "workflow", "summary", "personale", "finance", "report"];
+const advancedOnlyPageIds: AppPage[] = ["whatif", "advisor", "esg", "pratiche"];
 
 const euro = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -704,6 +709,10 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [activePage, setActivePage] = useState<AppPage>("dashboard");
+  const [experienceMode, setExperienceMode] = useState<ExperienceMode>(() => {
+    if (typeof window === "undefined") return "simple";
+    return window.localStorage.getItem(EXPERIENCE_MODE_STORAGE_KEY) === "advanced" ? "advanced" : "simple";
+  });
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState("utente@launchpilot.it");
   const [userProfileMode] = useState<UserProfileMode>("consulente");
@@ -1839,6 +1848,9 @@ export default function Home() {
   });
 
   const completedStepsCount = Object.values(confirmedSteps).filter(Boolean).length;
+  const visibleAppPages = experienceMode === "simple"
+    ? allAppPages.filter((page) => simpleAppPageIds.includes(page.id))
+    : allAppPages;
   const activePageCopy = allAppPages.find((page) => page.id === activePage) ?? appPages[0];
 
   const incomeStatement = (() => {
@@ -2037,6 +2049,14 @@ export default function Home() {
     const frame = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(frame);
   }, []);
+
+  function updateExperienceMode(mode: ExperienceMode) {
+    setExperienceMode(mode);
+    window.localStorage.setItem(EXPERIENCE_MODE_STORAGE_KEY, mode);
+    if (mode === "simple" && advancedOnlyPageIds.includes(activePage)) {
+      setActivePage("dashboard");
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -2552,7 +2572,7 @@ export default function Home() {
             />
           </div>
           <nav className="hidden items-center gap-1 rounded-md bg-slate-100 p-1 md:flex">
-            {appPages.map((page) => (
+            {visibleAppPages.map((page) => (
               <button
                 key={page.id}
                 type="button"
@@ -2564,6 +2584,19 @@ export default function Home() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
+            <div className="hidden rounded-2xl border border-slate-200 bg-white p-1 text-xs font-bold shadow-sm lg:flex">
+              {(["simple", "advanced"] as ExperienceMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => updateExperienceMode(mode)}
+                  className={"rounded-xl px-3 py-2 transition " + (experienceMode === mode ? "bg-teal-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950")}
+                  title={mode === "simple" ? "Mostra solo dati essenziali e percorso rapido." : "Mostra simulazioni, analisi e strumenti professionali."}
+                >
+                  {mode === "simple" ? "Semplice" : "Avanzata"}
+                </button>
+              ))}
+            </div>
             <div className="hidden rounded-2xl border border-slate-200 bg-white px-3 py-2 text-right text-xs shadow-sm sm:block">
               <p className="font-semibold text-slate-950">{userEmail}</p>
               <p className="text-slate-500">{userProfileMode === "consulente" ? "Profilo consulente" : "Profilo ristoratore"}</p>
@@ -2633,8 +2666,27 @@ export default function Home() {
                 {completedStepsCount}/10 ok
               </span>
             </div>
+            <div className="mb-3 rounded-lg border border-teal-100 bg-teal-50 p-2">
+              <div className="grid grid-cols-2 gap-1">
+                {(["simple", "advanced"] as ExperienceMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => updateExperienceMode(mode)}
+                    className={"rounded-md px-2 py-2 text-xs font-bold transition " + (experienceMode === mode ? "bg-white text-teal-700 shadow-sm" : "text-slate-500 hover:bg-white/70")}
+                  >
+                    {mode === "simple" ? "Semplice" : "Avanzata"}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                {experienceMode === "simple"
+                  ? "Vedi solo percorso rapido, numeri chiave e report."
+                  : "Vedi anche simulazioni, AI, ESG e pratiche."}
+              </p>
+            </div>
             <div className="grid gap-1">
-              {appPages.map((page) => (
+              {visibleAppPages.map((page) => (
                 <button
                   key={page.id}
                   type="button"
