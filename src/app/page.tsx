@@ -380,13 +380,13 @@ const workflowCostKindCopy: Record<WorkflowCostKind, { label: string; className:
 };
 
 const appPages: { id: AppPage; label: string; description: string }[] = [
-  { id: "dashboard", label: "Dashboard", description: "KPI essenziali e stato progetto" },
-  { id: "workflow", label: "Workflow", description: "Percorso rapido e guidato" },
-  { id: "summary", label: "Riassunto", description: "Confronto economico degli scenari" },
-  { id: "personale", label: "Personale", description: "Costo lavoro, produttivita e turni" },
-  { id: "finance", label: "Finanza", description: "Investimenti, ammortamenti e finanziamenti" },
-  { id: "whatif", label: "What If", description: "Stress test e simulazioni live" },
-  { id: "report", label: "Report", description: "PDF, stampa e controlli finali" },
+  { id: "dashboard", label: "Inizio", description: "Scegli cosa vuoi fare" },
+  { id: "workflow", label: "Percorso guidato", description: "Compila pochi dati essenziali" },
+  { id: "summary", label: "Risultato", description: "Il progetto sta in piedi?" },
+  { id: "personale", label: "Personale", description: "Costo lavoro e produttività" },
+  { id: "finance", label: "Investimenti e finanza", description: "Acquisti, ammortamenti e debito" },
+  { id: "whatif", label: "Simulazioni", description: "Cambia i cursori e guarda l'effetto" },
+  { id: "report", label: "Stampa report", description: "Anteprima, PDF e controlli finali" },
 ];
 
 const advancedPages: { id: AppPage; label: string; description: string }[] = [
@@ -399,7 +399,7 @@ const allAppPages = [...appPages, ...advancedPages];
 const EXPERIENCE_MODE_STORAGE_KEY = "launch-pilot:experience-mode";
 type ExperienceMode = "simple" | "advanced";
 
-const simpleAppPageIds: AppPage[] = ["dashboard", "workflow", "summary", "personale", "finance", "report"];
+const simpleAppPageIds: AppPage[] = ["dashboard", "workflow", "summary", "report"];
 const advancedOnlyPageIds: AppPage[] = ["whatif", "advisor", "esg", "pratiche"];
 
 const euro = new Intl.NumberFormat("it-IT", {
@@ -2822,6 +2822,64 @@ export default function Home() {
             </div>
           </section>
 
+          <section className={(activePage === "dashboard" ? "" : "hidden ") + "rounded-lg border border-slate-200 bg-white p-5 shadow-sm"}>
+            <div className="mb-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Da dove vuoi partire?</p>
+              <h2 className="mt-1 text-2xl font-semibold text-slate-950">Scegli l&apos;obiettivo, poi ti guida LaunchPilot</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Non devi conoscere tutti i moduli: scegli cosa vuoi ottenere e il sistema apre solo le parti utili.
+              </p>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-3">
+              {[
+                {
+                  title: "Creo una prefattibilità rapida",
+                  text: "Parti da locale, investimenti, costi e ricavi. È il percorso più semplice.",
+                  action: "Apri percorso",
+                  icon: Sparkles,
+                  page: "workflow" as AppPage,
+                  className: "border-teal-200 bg-teal-50 text-teal-700",
+                },
+                {
+                  title: "Controllo se il progetto regge",
+                  text: "Vedi subito fatturato minimo, clienti necessari, rischi e liquidità.",
+                  action: "Vedi risultato",
+                  icon: Gauge,
+                  page: "summary" as AppPage,
+                  className: "border-sky-200 bg-sky-50 text-sky-700",
+                },
+                {
+                  title: "Preparo il report da stampare",
+                  text: "Controlla anteprima, intestazione, versione report e stampa PDF.",
+                  action: "Apri report",
+                  icon: Download,
+                  page: "report" as AppPage,
+                  className: "border-amber-200 bg-amber-50 text-amber-700",
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => setActivePage(item.page)}
+                    className="group rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md"
+                  >
+                    <span className={"inline-flex h-10 w-10 items-center justify-center rounded-md border " + item.className}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="mt-4 block text-lg font-semibold text-slate-950">{item.title}</span>
+                    <span className="mt-2 block text-sm leading-6 text-slate-500">{item.text}</span>
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-teal-700">
+                      {item.action}
+                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           <section className={(activePage === "dashboard" ? "" : "hidden ") + "rounded-lg border border-teal-200 bg-white p-5 shadow-sm"}>
             <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
               <div>
@@ -2871,7 +2929,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className={(activePage === "dashboard" ? "" : "hidden ") + "rounded-lg border border-slate-200 bg-white p-5 shadow-sm"}>
+          <section className={(activePage === "dashboard" && experienceMode === "advanced" ? "" : "hidden ") + "rounded-lg border border-slate-200 bg-white p-5 shadow-sm"}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Strumenti avanzati</p>
@@ -4351,6 +4409,52 @@ export default function Home() {
                 <div className="mt-4 rounded-md bg-teal-50 p-3 text-xs leading-5 text-teal-900">
                   Stima prudenziale: affitto ed energia sono isolati dai costi fissi con quote guida, modificabili in seguito quando avremo una scheda costi ancora più dettagliata.
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={(activePage === "summary" ? "" : "hidden ") + "rounded-lg border border-teal-200 bg-white p-5 shadow-sm"}>
+            <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Risultato immediato</p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950">Il progetto sta in piedi?</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                  Questa è la lettura più semplice: quanto devi incassare, quanti clienti servono e dove intervenire prima di presentare il progetto.
+                </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-lg bg-teal-50 p-4 ring-1 ring-teal-100">
+                    <p className="text-xs font-semibold uppercase text-teal-600">Stato progetto</p>
+                    <p className="mt-2 text-xl font-semibold text-teal-950">{status.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-teal-700">Lettura sintetica di ricavi, costi, liquidità e debito.</p>
+                  </div>
+                  <div className="rounded-lg bg-sky-50 p-4 ring-1 ring-sky-100">
+                    <p className="text-xs font-semibold uppercase text-sky-600">Incasso minimo</p>
+                    <p className="mt-2 lp-card-value-sm text-sky-950">{euro.format(kpis.breakEvenRevenue)}</p>
+                    <p className="mt-1 text-xs leading-5 text-sky-700">Fatturato mensile indicativo per non perdere denaro.</p>
+                  </div>
+                  <div className="rounded-lg bg-amber-50 p-4 ring-1 ring-amber-100">
+                    <p className="text-xs font-semibold uppercase text-amber-600">Clienti necessari</p>
+                    <p className="mt-2 lp-card-value-sm text-amber-950">{Math.ceil(breakEvenCustomersDaily).toLocaleString("it-IT")}/giorno</p>
+                    <p className="mt-1 text-xs leading-5 text-amber-700">Calcolati dalla spesa media per persona.</p>
+                  </div>
+                  <div className="rounded-lg bg-indigo-50 p-4 ring-1 ring-indigo-100">
+                    <p className="text-xs font-semibold uppercase text-indigo-600">Liquidità prevista</p>
+                    <p className="mt-2 lp-card-value-sm text-indigo-950">{euro.format(kpis.cashFlowMonthly * 12)}</p>
+                    <p className="mt-1 text-xs leading-5 text-indigo-700">Cassa stimata nei primi 12 mesi.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-slate-200">
+                <p className="font-semibold text-slate-950">Cosa migliorare subito</p>
+                <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                  {inputs.foodCostPct > 30 ? <p><strong className="text-amber-700">Costo materie prime:</strong> prova a ridurlo verso il 24-30%.</p> : <p><strong className="text-emerald-700">Costo materie prime:</strong> il valore è coerente con una gestione prudente.</p>}
+                  {kpis.laborPct > 34 ? <p><strong className="text-amber-700">Personale:</strong> il costo lavoro assorbe troppo fatturato.</p> : <p><strong className="text-emerald-700">Personale:</strong> incidenza sotto la soglia critica.</p>}
+                  {kpis.dscr < 1.2 ? <p><strong className="text-rose-700">Debito:</strong> la copertura delle rate è debole.</p> : <p><strong className="text-emerald-700">Debito:</strong> la copertura delle rate appare sostenibile.</p>}
+                </div>
+                <button type="button" onClick={() => setActivePage("report")} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700">
+                  Vai al report
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </section>
