@@ -12,7 +12,7 @@ import {
   Download,
   Gauge,
   LineChart,
-  Lock,
+  LogOut,
   Plus,
   Sparkles,
   TrendingUp,
@@ -47,6 +47,7 @@ import {
   variableCostPresets,
   workflowSteps,
 } from "@/lib/presets";
+import { supabase } from "@/lib/supabase";
 
 type Investment = (typeof defaultInvestments)[number] & {
   depreciationRate: number;
@@ -59,7 +60,7 @@ type BenchmarkCostKind = BenchmarkCostRow["kind"];
 
 type WorkflowCostKind = "fixed" | "variable" | "oneTime";
 type ServiceBandKey = "breakfast" | "lunch" | "aperitif" | "dinner";
-type AppPage = "dashboard" | "workflow" | "summary" | "finance" | "advisor" | "esg" | "pratiche" | "report";
+type AppPage = "dashboard" | "workflow" | "summary" | "finance" | "whatif" | "advisor" | "esg" | "pratiche" | "report";
 type AssetStrategy = "purchase" | "leasing" | "rental";
 type FinancingSourceType = "own" | "bank" | "leasing" | "rental" | "grant" | "other";
 type GrantProbability = "basso" | "medio" | "alto" | "confermato";
@@ -382,7 +383,8 @@ const appPages: { id: AppPage; label: string; description: string }[] = [
   { id: "workflow", label: "Workflow", description: "Percorso rapido e guidato" },
   { id: "summary", label: "Riassunto", description: "Confronto economico degli scenari" },
   { id: "finance", label: "Finanza", description: "Investimenti, ammortamenti e finanziamenti" },
-  { id: "report", label: "Report", description: "PDF e controlli finali" },
+  { id: "whatif", label: "What If", description: "Stress test e simulazioni live" },
+  { id: "report", label: "Report", description: "PDF, stampa e controlli finali" },
 ];
 
 const advancedPages: { id: AppPage; label: string; description: string }[] = [
@@ -701,7 +703,8 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [activePage, setActivePage] = useState<AppPage>("dashboard");
-  const [userEmail] = useState("consulente@launchpilot.it");
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userEmail, setUserEmail] = useState("utente@launchpilot.it");
   const [userProfileMode] = useState<UserProfileMode>("consulente");
   const [reportBranding, setReportBranding] = useState<ReportBranding>({ enabled: true, header: "Studio consulenza ristorazione", subHeader: "Analisi di prefattibilità predisposta con LaunchPilot", logoUrl: "/launch-pilot-logo.png" });
   const [businessPlanAudience, setBusinessPlanAudience] = useState<BusinessPlanAudience>("banca");
@@ -1167,7 +1170,7 @@ export default function Home() {
     ? { tone: "red", label: "Rischio liquidità alto", text: "Attenzione: il progetto rischia crisi di liquidità nei primi 6 mesi." }
     : sixMonthMinimumCash < safetyBuffer
       ? { tone: "yellow", label: "Liquidità da rafforzare", text: "Il progetto regge, ma il margine di sicurezza nei primi mesi è limitato." }
-      : { tone: "green", label: "Liquidità iniziale adeguata", text: "La dotazione iniziale copre investimenti, scorte, capitale circolante e buffer." };
+      : { tone: "green", label: "Liquidità iniziale adeguata", text: "La dotazione iniziale copre investimenti, scorte, capitale circolante e liquidità di sicurezza." };
   const initialNeedRows = [
     { name: "Investimenti iniziali", value: investmentTotal, note: "Uscita reale per beni, lavori e attrezzature." },
     { name: "Tasse e burocrazia", value: oneTimeBureaucracyCostsPreview, note: "Pratiche, autorizzazioni e costi apertura." },
@@ -1409,9 +1412,9 @@ export default function Home() {
       : { id: "bep", tone: "green" as AiAlertTone, priority: "Bassa" as AiPriority, title: "Punto di pareggio leggibile", metric: Math.ceil(breakEvenCustomersDaily) + " clienti/giorno", text: "Il numero di clienti necessari al pareggio sembra raggiungibile con le ipotesi inserite.", explain: "La soglia giornaliera non appare sproporzionata rispetto a coperti, giorni di apertura e spesa media.", suggestions: ["validare con dati zona", "monitorare occupazione", "tenere una riserva di cassa"] },
     totalMonthlyDebtService > kpis.ebitdaMonthly * 0.45 || (minDscrRow?.dscr ?? kpis.dscr) < 1.2
       ? { id: "debt", tone: (minDscrRow?.dscr ?? kpis.dscr) < 1 ? "red" as AiAlertTone : "yellow" as AiAlertTone, priority: "Alta" as AiPriority, title: "Finanziamento impegnativo", metric: (minDscrRow?.dscr ?? kpis.dscr).toFixed(2), text: "La struttura finanziaria è aggressiva. Le rate potrebbero creare problemi di liquidità nei primi mesi.", explain: "Il progetto genera cassa, ma una parte rilevante viene assorbita dalle rate. Se i ricavi partono lentamente, la liquidità può stringersi.", suggestions: ["aumentare capitale proprio", "allungare durata finanziamento", "ridurre investimento iniziale", "rinviare spese non essenziali", "creare riserva liquidità"] }
-      : { id: "debt", tone: "green" as AiAlertTone, priority: "Bassa" as AiPriority, title: "Debito sostenibile", metric: (minDscrRow?.dscr ?? kpis.dscr).toFixed(2), text: "Le rate sembrano sostenibili rispetto alla cassa operativa prevista.", explain: "Il margine operativo copre il servizio del debito con un livello di sicurezza accettabile.", suggestions: ["mantenere buffer cassa", "monitorare incassi", "verificare TAN e TAEG reali"] },
+      : { id: "debt", tone: "green" as AiAlertTone, priority: "Bassa" as AiPriority, title: "Debito sostenibile", metric: (minDscrRow?.dscr ?? kpis.dscr).toFixed(2), text: "Le rate sembrano sostenibili rispetto alla cassa operativa prevista.", explain: "Il margine operativo copre il servizio del debito con un livello di sicurezza accettabile.", suggestions: ["mantenere liquidità di sicurezza", "monitorare incassi", "verificare TAN e TAEG reali"] },
     liquidityStressLevel.tone === "red"
-      ? { id: "cash", tone: "red" as AiAlertTone, priority: "Alta" as AiPriority, title: "Liquidità iniziale fragile", metric: euro.format(initialFundingGap), text: "Il progetto rischia tensioni di cassa nei primi mesi.", explain: "Oltre agli investimenti servono scorte, capitale circolante e un cuscinetto. Se manca liquidità, anche un progetto redditizio può andare in difficoltà.", suggestions: ["aumentare cassa iniziale", "ridurre acquisti non essenziali", "ottenere fido o buffer", "posticipare alcuni investimenti"] }
+      ? { id: "cash", tone: "red" as AiAlertTone, priority: "Alta" as AiPriority, title: "Liquidità iniziale fragile", metric: euro.format(initialFundingGap), text: "Il progetto rischia tensioni di cassa nei primi mesi.", explain: "Oltre agli investimenti servono scorte, capitale circolante e una riserva operativa. Se manca liquidità, anche un progetto redditizio può andare in difficoltà.", suggestions: ["aumentare cassa iniziale", "ridurre acquisti non essenziali", "ottenere fido o liquidità di sicurezza", "posticipare alcuni investimenti"] }
       : { id: "cash", tone: liquidityStressLevel.tone as AiAlertTone, priority: liquidityStressLevel.tone === "yellow" ? "Media" as AiPriority : "Bassa" as AiPriority, title: liquidityStressLevel.label, metric: euro.format(sixMonthMinimumCash), text: liquidityStressLevel.text, explain: "La cassa iniziale deve coprire l'avvio, non solo gli acquisti. Serve margine per ritardi, scorte e mesi deboli.", suggestions: ["tenere una riserva", "monitorare primi 6 mesi", "verificare incasso contributi"] },
   ];
 
@@ -1855,7 +1858,7 @@ export default function Home() {
       ? "Il costo lavoro è alto rispetto al fatturato: verifica turni, aperture e produttività per servizio."
       : "Il costo lavoro è coerente con una gestione sostenibile.",
     kpis.cashFlowMonthly < 0
-      ? `Liquidità in tensione: servono almeno ${euro.format(Math.abs(kpis.cashFlowMonthly) * 4)} di buffer aggiuntivo.`
+      ? `Liquidità in tensione: servono almeno ${euro.format(Math.abs(kpis.cashFlowMonthly) * 4)} di riserva operativa aggiuntiva.`
       : "Cash flow mensile positivo: il progetto genera cassa dopo il servizio del debito.",
     !financing.enabled
       ? "Nessun finanziamento attivo: il progetto non ha servizio del debito, ma richiede più capitale proprio iniziale."
@@ -2000,6 +2003,35 @@ export default function Home() {
     const frame = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function checkSession() {
+      if (!supabase) {
+        setAuthChecked(true);
+        return;
+      }
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (!data.session) {
+        window.location.href = "/login";
+        return;
+      }
+      setUserEmail(data.session.user.email ?? "utente@launchpilot.it");
+      setAuthChecked(true);
+    }
+    checkSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function logout() {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    window.location.href = "/login";
+  }
 
   function markStepDirty(stepIndex: number) {
     setConfirmedSteps((current) => ({ ...current, [stepIndex]: false }));
@@ -2461,6 +2493,16 @@ export default function Home() {
     pdf.save("launch-pilot-" + fileSuffix + ".pdf");
   }
 
+  if (!authChecked) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-slate-50 text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-semibold shadow-sm">
+          Verifica accesso in corso...
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -2487,13 +2529,20 @@ export default function Home() {
               </button>
             ))}
           </nav>
-          <a
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
-          >
-            <Lock className="h-4 w-4" />
-            Area clienti
-          </a>
+          <div className="flex items-center gap-3">
+            <div className="hidden rounded-2xl border border-slate-200 bg-white px-3 py-2 text-right text-xs shadow-sm sm:block">
+              <p className="font-semibold text-slate-950">{userEmail}</p>
+              <p className="text-slate-500">{userProfileMode === "consulente" ? "Profilo consulente" : "Profilo ristoratore"}</p>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
+            >
+              <LogOut className="h-4 w-4" />
+              Esci
+            </button>
+          </div>
         </div>
       </header>
 
@@ -2612,6 +2661,8 @@ export default function Home() {
                       ? "Questa pagina confronta gli scenari facendo emergere fatturato, costi totali, incidenza percentuale e risultato dopo finanza e ammortamenti."
                         : activePage === "finance"
                           ? "Qui si leggono investimenti, ammortamenti economici, uscite di cassa reali e l'effetto di eventuali finanziamenti."
+                          : activePage === "whatif"
+                            ? "Simula subito scenari alternativi: fatturato, costi, personale, energia, spesa media e impatto su cassa, utile e punto di pareggio."
                           : activePage === "advisor"
                             ? "Qui LaunchPilot interpreta i numeri e ti dice cosa non funziona, perché e cosa migliorare subito."
                             : activePage === "esg"
@@ -2740,15 +2791,15 @@ export default function Home() {
                   />
                 </div>
               </div>
-              <div className="min-h-[320px] rounded-lg bg-slate-950 p-4 text-white">
+              <div className="min-h-[320px] rounded-lg border border-teal-100 bg-gradient-to-br from-white via-teal-50 to-sky-50 p-4 text-slate-950 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">Cash flow 12 mesi</p>
+                    <p className="text-sm text-slate-500">Cash flow 12 mesi</p>
                     <p className="lp-card-value">
                       {euro.format(cashFlowData.at(-1)?.saldo ?? 0)}
                     </p>
                   </div>
-                  <Activity className="h-6 w-6 text-emerald-300" />
+                  <Activity className="h-6 w-6 text-teal-600" />
                 </div>
                 <div className="mt-6 h-64">
                   {mounted && activePage === "dashboard" ? (
@@ -3113,7 +3164,7 @@ export default function Home() {
                 <div className="rounded-lg border border-slate-200 bg-white p-4">
                   <p className="text-sm font-semibold text-slate-950">Come si usa</p>
                   <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-3">
-                    <p className="rounded-md bg-slate-50 p-3"><strong>1. Leggi</strong><br />Le voci sono già pronte per aiutarti a non dimenticare costi importanti.</p>
+                    <p className="rounded-md bg-slate-50 p-3"><strong>1. Leggi</strong><br />Le voci sono già pronte per aiutarti a non dimenticare costi importanti. Puoi anche inserire costi personalizzati non presenti nelle categorie predefinite.</p>
                     <p className="rounded-md bg-slate-50 p-3"><strong>2. Conferma</strong><br />Spunta solo le cose che comprerai davvero e correggi gli importi.</p>
                     <p className="rounded-md bg-slate-50 p-3"><strong>3. Stampa</strong><br />Puoi stampare i costi scelti o tutto il promemoria completo.</p>
                   </div>
@@ -3123,7 +3174,7 @@ export default function Home() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button type="button" onClick={() => showInvestmentPreview("selected")} className={"rounded-md px-3 py-2 text-sm font-semibold transition " + (investmentPrintMode === "selected" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-700")}>Anteprima costi scelti</button>
                       <button type="button" onClick={() => showInvestmentPreview("all")} className={"rounded-md px-3 py-2 text-sm font-semibold transition " + (investmentPrintMode === "all" ? "bg-teal-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-700")}>Anteprima promemoria completo</button>
-                      <button type="button" onClick={() => printInvestments()} className="rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">Stampa documento A4</button>
+                      <button type="button" onClick={() => printInvestments()} className="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">Stampa documento A4</button>
                     </div>
                   </div>
                 </div>
@@ -3131,7 +3182,7 @@ export default function Home() {
                 <div className="sticky top-[76px] z-10 rounded-lg border border-teal-100 bg-white/95 p-3 shadow-sm backdrop-blur no-print">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-950">Categorie costi</p>
+                      <p className="text-sm font-semibold leading-tight text-slate-950">Categorie<br />costi</p>
                       <p className="text-xs leading-5 text-slate-500">Scegli una categoria e vai direttamente alla tabella. Le barre mostrano quanto hai gia confermato.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -3700,7 +3751,7 @@ export default function Home() {
                 </div>
                 <div className="mt-4 grid gap-3 text-sm lg:grid-cols-3">
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="font-semibold text-slate-950">BEP stagionale</p><p className="mt-1 text-slate-600">Estate: occupazione minima {summerBreakEvenOccupancy.toFixed(0)}%</p><p className="text-slate-600">Inverno: occupazione minima {winterBreakEvenOccupancy.toFixed(0)}%</p></div>
-                  <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="font-semibold text-slate-950">Delivery</p><p className="mt-1 text-slate-600">Usa spesa media delivery stimata {euro.format(deliveryAverageTicket)} e commissioni {Math.round(deliveryCommissionRate * 100)}%.</p></div>
+                  <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="font-semibold text-slate-950">Delivery</p><p className="mt-1 text-slate-600">Gli ordini delivery partono da una spesa media di {euro.format(deliveryAverageTicket)}. Le commissioni stimate al {Math.round(deliveryCommissionRate * 100)}% riducono il margine: per questo il programma calcola l&apos;incasso netto, non solo il valore dell&apos;ordine.</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="font-semibold text-slate-950">Lettura semplice</p><p className="mt-1 text-slate-600">Se i clienti/giorno richiesti superano la capacità reale, il problema non è solo il prezzo: serve rivedere costi, personale o format.</p></div>
                 </div>
               </div>
@@ -3709,7 +3760,7 @@ export default function Home() {
             <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-teal-600" />
-                <p className="font-semibold">AI Advisor</p>
+                <p className="font-semibold">AI suggerisce</p>
               </div>
               <div className="space-y-3">
                 {advisor.map((item) => (
@@ -3761,7 +3812,7 @@ export default function Home() {
                 <span className={"rounded-full px-3 py-1.5 text-xs font-semibold ring-1 " + (liquidityStressLevel.tone === "red" ? "bg-rose-50 text-rose-700 ring-rose-200" : liquidityStressLevel.tone === "yellow" ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-emerald-50 text-emerald-700 ring-emerald-200")}>{liquidityStressLevel.label}</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <KpiCard icon={BadgeEuro} label="Fabbisogno reale" value={euro.format(initialFinancialNeed)} detail="Investimenti + avvio + buffer" tone="blue" />
+                <KpiCard icon={BadgeEuro} label="Fabbisogno reale" value={euro.format(initialFinancialNeed)} detail="Investimenti + avvio + liquidità di sicurezza" tone="blue" />
                 <KpiCard icon={Banknote} label="Copertura disponibile" value={euro.format(availableInitialFunding)} detail="Mezzi propri, debito, contributi certi e cassa" tone="green" />
                 <KpiCard icon={AlertTriangle} label="Gap iniziale" value={euro.format(initialFundingGap)} detail="Da coprire prima dell'apertura" tone={initialFundingGap > 0 ? "red" : "green"} />
                 <KpiCard icon={Activity} label="Cassa minima 6 mesi" value={euro.format(sixMonthMinimumCash)} detail="Punto più basso simulato" tone={sixMonthMinimumCash < safetyBuffer ? "red" : "green"} />
@@ -3893,7 +3944,7 @@ export default function Home() {
                 <div className="mt-4 h-72">{mounted && activePage === "finance" ? (<ResponsiveContainer width="100%" height="100%" minWidth={240} minHeight={220}><BarChart data={cashVsEconomicData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" tick={{ fontSize: 11 }} /><YAxis /><Tooltip /><Bar dataKey="value" fill="#0f766e" radius={[4,4,0,0]} /></BarChart></ResponsiveContainer>) : (<ChartShell />)}</div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">AI advisor</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">AI suggerisce</p>
                 <h3 className="mt-1 text-lg font-semibold text-slate-950">Suggerimenti automatici</h3>
                 <div className="mt-4 space-y-3">{investmentAdvisor.map((tip) => (<div key={tip} className="rounded-md bg-slate-50 p-3 text-sm leading-6 text-slate-600">{tip}</div>))}</div>
               </div>
@@ -3921,8 +3972,8 @@ export default function Home() {
             </div>
           </section>
 
-          <section className={((activePage === "workflow" && activeStep === 7) ? "" : "hidden ") + "rounded-lg border border-slate-200 bg-white p-5 shadow-sm"}>
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Ricavi multi-canale</p><h2 className="mt-1 lp-card-value-sm text-slate-950">Tipologie di ricavo selezionabili</h2><p className="mt-1 text-sm leading-6 text-slate-500">Approccio prudenziale: il ricavo ordinario è quanto incassa la struttura; banqueting, delivery e asporto usano un margine minimo netto per persona o ordine.</p></div><span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">Buon padre di famiglia</span></div>
+          <section className={(activePage === "whatif" ? "" : "hidden ") + "rounded-lg border border-slate-200 bg-white p-5 shadow-sm"}>
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Ricavi multi-canale</p><h2 className="mt-1 lp-card-value-sm text-slate-950">Tipologie di ricavo selezionabili</h2><p className="mt-1 text-sm leading-6 text-slate-500">Approccio prudenziale: il ricavo ordinario è quanto incassa la struttura; banqueting, delivery e asporto usano un margine minimo netto per persona o ordine.</p></div></div>
             <div className="grid gap-3 md:grid-cols-3"><div className="rounded-md bg-teal-50 p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Ricavi selezionati/mese</p><p className="lp-card-value-sm mt-1">{euro.format(selectedChannelMonthlyRevenue)}</p></div><div className="rounded-md bg-emerald-50 p-3 ring-1 ring-emerald-100"><p className="text-xs font-semibold uppercase text-emerald-600">Margine netto/mese</p><p className="lp-card-value-sm mt-1">{euro.format(selectedChannelMonthlyMargin)}</p></div><div className="rounded-md bg-slate-50 p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-500">BEP complessivo</p><p className="lp-card-value-sm mt-1">{Math.ceil(combinedChannelBreakEvenUnits).toLocaleString("it-IT")}</p><p className="text-xs text-slate-500">Ricavo BEP {euro.format(combinedChannelBreakEvenRevenue)}</p></div></div>
             <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200"><table className="w-full min-w-[1500px] text-left text-sm"><thead className="bg-teal-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa nel BEP</th><th className="px-2 py-1.5">Attività</th><th className="px-2 py-1.5 text-right">Ordini/persone mese</th><th className="px-2 py-1.5 text-right">Spesa media</th><th className="px-2 py-1.5 text-right">Costi per ordine</th><th className="px-2 py-1.5 text-right">Netto dopo costi</th><th className="px-2 py-1.5 text-right">Margine minimo</th><th className="px-2 py-1.5">Piattaforma / canale</th><th className="px-2 py-1.5 text-right">Ricavo mese</th><th className="px-2 py-1.5 text-right">Margine mese</th><th className="px-2 py-1.5 text-right">BEP singolo</th><th className="px-2 py-1.5">Nota</th></tr></thead><tbody className="divide-y divide-slate-100">{revenueChannelRows.map((channel) => (<tr key={channel.key} className={channel.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={channel.enabled} onChange={(event) => updateRevenueChannel(channel.key, "enabled", event.target.checked)} className="h-4 w-4 accent-teal-600" /></td><td className="px-2 py-1.5"><input value={channel.label} onChange={(event) => updateRevenueChannel(channel.key, "label", event.target.value)} className="w-44 rounded-md border border-slate-200 bg-white px-2 py-1.5 font-semibold text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><input type="number" min="0" value={channel.monthlyOrders} onChange={(event) => updateRevenueChannel(channel.key, "monthlyOrders", Number(event.target.value))} disabled={channel.key === "ordinary"} className="w-24 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-right outline-none focus:border-teal-500 disabled:bg-slate-50" /></td><td className="px-2 py-1.5">{channel.key === "ordinary" ? (<div className="w-28 rounded-md bg-slate-50 px-2 py-1.5 text-right text-sm font-semibold text-slate-700 ring-1 ring-slate-200" title="Per l'attività ordinaria usa la spesa media dello scenario realistico.">{euro.format(channel.averageRevenueEffective)}</div>) : (<MoneyInput value={channel.averageRevenue} onChange={(value) => updateRevenueChannel(channel.key, "averageRevenue", value)} className="w-28 rounded-md border border-slate-200 px-2 py-1 text-right text-xs outline-none focus:border-teal-500" />)}</td><td className="px-2 py-1.5"><div className="text-right text-xs text-slate-500"><span className="block">Consegna {euro.format(channel.deliveryCostPerOrder)}</span><span className="block">Altri {euro.format(channel.otherCostPerOrder)}</span></div></td><td className="px-3 py-2 text-right font-semibold text-slate-700">{channel.key === "ordinary" ? "-" : euro.format(channel.netRevenueAfterCosts)}</td><td className="px-2 py-1.5"><MoneyInput value={channel.minMarginPerPerson} onChange={(value) => updateRevenueChannel(channel.key, "minMarginPerPerson", value)} disabled={channel.key === "ordinary"} className="w-24 rounded-md border border-slate-200 px-2 py-1 text-right text-xs outline-none focus:border-teal-500 disabled:bg-slate-50" /></td><td className="px-2 py-1.5"><input value={channel.platform} onChange={(event) => updateRevenueChannel(channel.key, "platform", event.target.value)} disabled={channel.key === "ordinary"} className="w-44 rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50" /></td><td className="px-3 py-2 text-right font-semibold">{euro.format(channel.monthlyRevenue)}</td><td className="px-3 py-2 text-right font-semibold text-emerald-700">{euro.format(channel.monthlyMargin)}</td><td className="px-3 py-2 text-right font-semibold">{Math.ceil(channel.breakEvenUnits).toLocaleString("it-IT")}</td><td className="px-2 py-1.5"><input value={channel.note} onChange={(event) => updateRevenueChannel(channel.key, "note", event.target.value)} className="w-72 rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-teal-500" /></td></tr>))}</tbody></table></div>
           </section>
@@ -3965,7 +4016,7 @@ export default function Home() {
                 <p className="font-semibold text-slate-950">Base vs What If</p>
                 <p className="mt-1 text-sm text-slate-500">Utile e cash flow sono in euro annui; punto di pareggio è espresso in coperti medi giorno.</p>
                 <div className="mt-4 h-72">
-                  {mounted && activePage === "workflow" && activeStep === 7 ? (
+                  {mounted && activePage === "whatif" ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={240} minHeight={220}>
                       <BarChart data={whatIfResultData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -4930,10 +4981,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-slate-950 p-5 text-white shadow-sm">
-                  <p className="text-sm font-semibold text-teal-200">Conclusione professionale</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">{businessPlanConclusion}</p>
-                  <div className="mt-4 h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-teal-400" style={{ width: `${businessPlanScore}%` }} /></div>
+                <div className="rounded-lg border border-teal-100 bg-gradient-to-br from-white via-teal-50 to-sky-50 p-5 text-slate-950 shadow-sm">
+                  <p className="text-sm font-semibold text-teal-700">Conclusione professionale</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{businessPlanConclusion}</p>
+                  <div className="mt-4 h-2 rounded-full bg-white ring-1 ring-teal-100"><div className="h-2 rounded-full bg-teal-500" style={{ width: `${businessPlanScore}%` }} /></div>
                 </div>
               </div>
             </div>

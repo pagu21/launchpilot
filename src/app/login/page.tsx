@@ -15,7 +15,7 @@ export default function LoginPage() {
   async function submit() {
     setMessage("");
     if (!supabase) {
-      setMessage("Configura NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+      setMessage("Accesso non disponibile: la piattaforma non risulta ancora collegata al sistema di autenticazione.");
       return;
     }
 
@@ -30,16 +30,24 @@ export default function LoginPage() {
         ? supabase.auth.signInWithPassword({ email, password })
         : supabase.auth.signUp({ email, password });
     const { error } = await action;
-    setMessage(error?.message ?? "Operazione completata.");
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    if (mode === "login") {
+      window.location.href = "/";
+      return;
+    }
+    setMessage("Account creato. Controlla la tua email se viene richiesta la conferma.");
   }
 
   return (
     <main className="grid min-h-screen bg-slate-50 px-4 py-8 text-slate-950">
-      <section className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm lg:grid-cols-[1fr_440px]">
-        <div className="flex min-h-[620px] flex-col justify-between bg-slate-950 p-8 text-white">
+      <section className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm lg:grid-cols-[1fr_440px]">
+        <div className="flex min-h-[620px] flex-col justify-between bg-gradient-to-br from-[#eef7ff] via-white to-[#edfdf8] p-8 text-slate-950">
           <Link
             href="/"
-            className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-white"
+            className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-teal-700"
           >
             <ArrowLeft className="h-4 w-4" />
             Torna alla dashboard
@@ -56,11 +64,11 @@ export default function LoginPage() {
               />
             </div>
             <h1 className="max-w-md text-4xl font-semibold tracking-tight">
-              Launch Pilot protegge ogni studio per cliente e progetto.
+              Il futuro del tuo ristorante inizia con numeri chiari.
             </h1>
-            <p className="mt-4 max-w-md text-slate-300">
-              Accesso con Supabase Auth, ruoli Super Admin/Cliente e Row Level
-              Security sul database PostgreSQL.
+            <p className="mt-4 max-w-md text-slate-600">
+              Ogni progetto è riservato, protetto e organizzato per offrirti sicurezza,
+              continuità e una visione professionale della tua prefattibilità.
             </p>
           </div>
         </div>
@@ -68,7 +76,7 @@ export default function LoginPage() {
         <div className="p-8">
           <div className="mb-8">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-600">
-              Area clienti
+              Accesso personale
             </p>
             <h2 className="mt-2 text-3xl font-semibold">
               {mode === "login"
