@@ -3546,7 +3546,7 @@ export default function Home() {
                               <th className="px-2 py-1.5 text-right" title="Peso della voce rispetto alla sua categoria.">% categoria</th>
                               <th className="px-2 py-1.5 text-right" title="Peso della voce rispetto al totale degli investimenti confermati.">% totale</th>
                               <th className="px-2 py-1.5" title="Aliquota IVA applicata alla voce.">IVA</th>
-                              <th className="px-2 py-1.5 text-right" title="Anni su cui distribuire il costo. Valore base: 5 anni.">Anni</th>
+                              <th className="px-2 py-1.5 text-right" title="Ammortamento lineare: il costo del bene viene diviso in parti uguali negli anni indicati. Valore base: 5 anni. Se spunti 50% anno 1, il primo anno pesa la metà.">Ammortamento<br />(anni)</th>
                               <th className="px-2 py-1.5">Ordina</th>
                               <th className="px-2 py-1.5">Elimina</th>
                             </tr>
@@ -4195,7 +4195,7 @@ export default function Home() {
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full min-w-[1520px] text-left text-sm">
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr><th className="w-72 px-2 py-1.5">Categoria</th><th className="w-[500px] px-2 py-1.5">Descrizione</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5 text-right">Durata utile</th><th className="px-2 py-1.5 text-right">Aliquota</th><th className="px-3 py-2 text-center">50% anno 1</th><th className="px-2 py-1.5 text-right">Amm. annuo</th><th className="px-2 py-1.5 text-right">Valore residuo</th></tr>
+                    <tr><th className="w-72 px-2 py-1.5">Categoria</th><th className="w-[500px] px-2 py-1.5">Descrizione</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5 text-right" title="Ammortamento lineare: il costo del bene viene distribuito in parti uguali negli anni indicati. Valore base: 5 anni.">Ammortamento<br />(anni)</th><th className="px-2 py-1.5 text-right" title="Percentuale annua collegata agli anni di ammortamento. Esempio: 5 anni = 20% annuo.">Aliquota</th><th className="px-3 py-2 text-center" title="Opzione prudenziale: nel primo anno il costo economico viene considerato al 50%.">50% anno 1</th><th className="px-2 py-1.5 text-right">Amm. annuo</th><th className="px-2 py-1.5 text-right">Valore residuo</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {amortizationRows.map((item, index) => (
