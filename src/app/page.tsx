@@ -2629,13 +2629,13 @@ export default function Home() {
               className="h-12 w-auto object-contain sm:h-14"
             />
           </div>
-          <nav className="hidden items-center gap-1 rounded-md bg-slate-100 p-1 md:flex">
+          <nav className="hidden max-w-[560px] items-center gap-1 overflow-x-auto rounded-md bg-slate-100 p-1 xl:flex">
             {visibleAppPages.map((page) => (
               <button
                 key={page.id}
                 type="button"
                 onClick={() => setActivePage(page.id)}
-                className={"rounded px-3 py-1.5 text-sm font-semibold transition " + (activePage === page.id ? "bg-teal-600 text-white shadow-sm ring-1 ring-teal-700/10" : "text-slate-600 hover:bg-white hover:text-slate-950")}
+                className={"shrink-0 rounded px-3 py-1.5 text-sm font-semibold transition " + (activePage === page.id ? "bg-teal-600 text-white shadow-sm ring-1 ring-teal-700/10" : "text-slate-600 hover:bg-white hover:text-slate-950")}
               >
                 {page.label}
               </button>
@@ -3428,15 +3428,54 @@ export default function Home() {
                   </div>
                   <p className="mt-4 rounded-md bg-slate-50 p-3 text-xs leading-5 text-slate-600">In futuro questo modulo potrà collegarsi a mappe, flussi pedonali, concorrenza e bacino d&apos;utenza. Oggi fornisce una prima lettura commerciale prudenziale usando zona, mq, passaggio, target, format e peso stimato dell&apos;affitto.</p>
                 </div>
-                <div id="fasce-servizio-settings" className="scroll-mt-28 rounded-lg bg-white p-4 ring-1 ring-teal-100">
+                <div id="fasce-servizio-settings" className="scroll-mt-28 rounded-xl border-2 border-teal-300 bg-teal-50/70 p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-teal-600">Fasce di servizio</p>
-                      <p className="max-w-3xl text-sm leading-6 text-slate-600">Seleziona solo i momenti in cui il locale lavora davvero. Queste scelte valgono per tutti gli scenari e servono per calcolare capacità, occupazione, clienti annui, ricavi e punto di pareggio. Se una fascia è attiva solo in una sala stagionale, impostala nella tabella sale sotto.</p>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Scelta servizi e canali di ricavo</p>
+                      <h3 className="text-lg font-semibold text-slate-950">Qui decidi cosa farà davvero il locale</h3>
+                      <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
+                        Seleziona solo i servizi realmente previsti. Queste scelte valgono per tutto il progetto e influenzano capacità, occupazione, ricavi, punto di pareggio e report. Il delivery, l&apos;asporto o il banqueting possono restare disattivati se non verranno svolti.
+                      </p>
                     </div>
-                    <span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-100" title="Le fasce selezionate qui sono valide per tutto il progetto, salvo sale stagionali configurate nella tabella sale.">Valide per tutto il progetto</span>
+                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-200" title="Le fasce selezionate qui sono valide per tutto il progetto, salvo sale stagionali configurate nella tabella sale.">Impostazione principale</span>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-3">{serviceBandDefinitions.map((band) => (<label key={band.key} className="flex items-center gap-2 rounded-full bg-teal-50 px-3 py-2 text-sm font-medium text-slate-700 ring-1 ring-teal-100"><input type="checkbox" checked={Boolean(venueProfile[band.key])} onChange={(event) => updateVenueProfile(band.key, event.target.checked)} className="h-4 w-4 accent-teal-600" />{band.label}<span className="text-xs text-slate-500">{band.hours}h</span></label>))}</div>
+                  <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                    <div className="rounded-lg bg-white p-4 ring-1 ring-teal-100">
+                      <p className="text-sm font-semibold text-slate-950">Fasce di servizio</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">Scegli quando il locale serve clienti in sede: colazione, pranzo, aperitivo e cena.</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {serviceBandDefinitions.map((band) => (
+                          <label key={band.key} className={"flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold ring-1 transition " + (venueProfile[band.key] ? "bg-teal-600 text-white ring-teal-600" : "bg-slate-50 text-slate-600 ring-slate-200")}>
+                            <input type="checkbox" checked={Boolean(venueProfile[band.key])} onChange={(event) => updateVenueProfile(band.key, event.target.checked)} className="h-4 w-4 accent-teal-600" />
+                            {band.label}
+                            <span className={venueProfile[band.key] ? "text-teal-100" : "text-slate-400"}>{band.hours}h</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-white p-4 ring-1 ring-teal-100">
+                      <p className="text-sm font-semibold text-slate-950">Canali di vendita</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">Attiva solo i ricavi che esisteranno davvero. Delivery e banqueting non sono obbligatori.</p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {revenueChannels.map((channel) => (
+                          <label key={channel.key} className={"flex items-start gap-2 rounded-lg p-3 text-sm ring-1 transition " + (channel.enabled ? "bg-emerald-50 text-emerald-900 ring-emerald-200" : "bg-slate-50 text-slate-600 ring-slate-200")}>
+                            <input
+                              type="checkbox"
+                              checked={channel.enabled}
+                              onChange={(event) => updateRevenueChannel(channel.key, "enabled", event.target.checked)}
+                              className="mt-0.5 h-4 w-4 accent-emerald-600"
+                            />
+                            <span>
+                              <span className="block font-semibold">{channel.label}</span>
+                              <span className="mt-0.5 block text-xs leading-5 opacity-80">
+                                {channel.key === "delivery" ? "Attivalo solo se userai piattaforme o consegne." : channel.key === "takeaway" ? "Ordini ritirati dal cliente." : channel.key === "ordinary" ? "Ricavi ordinari in sede." : "Ricavi aggiuntivi da eventi."}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-x-auto rounded-lg border border-teal-100 bg-white"><table className="w-full min-w-[1520px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-2 py-1.5">Sala</th><th className="px-2 py-1.5 text-right">Coperti</th><th className="px-2 py-1.5">Periodo</th><th className="px-2 py-1.5">Apertura sala</th><th className="px-2 py-1.5">Chiusura sala</th><th className="px-2 py-1.5 text-right">Giorni</th><th className="px-2 py-1.5">Nota</th></tr></thead><tbody className="divide-y divide-slate-100">{venueRooms.map((room) => { const roomDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, venueProfile.weeklyClosingDay); return (<tr key={room.id}><td className="px-2 py-1.5"><input value={room.name} onChange={(event) => updateVenueRoom(room.id, "name", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><input type="number" min="0" value={room.seats} onChange={(event) => updateVenueRoom(room.id, "seats", Number(event.target.value))} className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><select value={room.season} onChange={(event) => updateVenueRoom(room.id, "season", event.target.value)} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500">{roomSeasonPresets.map((season) => <option key={season}>{season}</option>)}</select></td><td className="px-2 py-1.5"><input type="date" value={room.seasonStartDate} onChange={(event) => updateVenueRoom(room.id, "seasonStartDate", event.target.value)} disabled={room.season === "Tutto l'anno"} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50 disabled:text-slate-400" /></td><td className="px-2 py-1.5"><input type="date" value={room.seasonEndDate} onChange={(event) => updateVenueRoom(room.id, "seasonEndDate", event.target.value)} disabled={room.season === "Tutto l'anno"} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50 disabled:text-slate-400" /></td><td className="px-2 py-1.5 text-right font-semibold text-slate-950">{roomDays}</td><td className="px-2 py-1.5"><input value={room.note} onChange={(event) => updateVenueRoom(room.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td></tr>); })}</tbody></table></div>
                 <button type="button" onClick={addVenueRoom} className="inline-flex w-fit items-center gap-2 rounded-md border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"><Plus className="h-4 w-4" />Aggiungi sala</button>
