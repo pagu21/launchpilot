@@ -60,7 +60,7 @@ type BenchmarkCostKind = BenchmarkCostRow["kind"];
 
 type WorkflowCostKind = "fixed" | "variable" | "oneTime";
 type ServiceBandKey = "breakfast" | "lunch" | "aperitif" | "dinner";
-type AppPage = "dashboard" | "workflow" | "summary" | "finance" | "whatif" | "advisor" | "esg" | "pratiche" | "report";
+type AppPage = "dashboard" | "workflow" | "summary" | "personale" | "finance" | "whatif" | "advisor" | "esg" | "pratiche" | "report";
 type AssetStrategy = "purchase" | "leasing" | "rental";
 type FinancingSourceType = "own" | "bank" | "leasing" | "rental" | "grant" | "other";
 type GrantProbability = "basso" | "medio" | "alto" | "confermato";
@@ -382,6 +382,7 @@ const appPages: { id: AppPage; label: string; description: string }[] = [
   { id: "dashboard", label: "Dashboard", description: "KPI essenziali e stato progetto" },
   { id: "workflow", label: "Workflow", description: "Percorso rapido e guidato" },
   { id: "summary", label: "Riassunto", description: "Confronto economico degli scenari" },
+  { id: "personale", label: "Personale", description: "Costo lavoro, produttivita e turni" },
   { id: "finance", label: "Finanza", description: "Investimenti, ammortamenti e finanziamenti" },
   { id: "whatif", label: "What If", description: "Stress test e simulazioni live" },
   { id: "report", label: "Report", description: "PDF, stampa e controlli finali" },
@@ -1392,6 +1393,39 @@ export default function Home() {
     { label: "Margine lordo", value: kpis.ebitdaPct.toFixed(1) + "%", benchmark: kpis.ebitdaPct >= 16 ? "ottimo" : kpis.ebitdaPct >= 9 ? "medio" : "scarso", note: "Margine prima di ammortamenti, interessi e tasse." },
     { label: "Rotazione tavoli", value: tableRotation.toFixed(1) + "x", benchmark: tableRotation >= 1.8 ? "ottimo" : tableRotation >= 1.1 ? "medio" : "scarso", note: "Coperti giorno rispetto ai posti disponibili." },
     { label: "Produttività personale", value: euro.format(staffProductivity), benchmark: staffProductivity >= 15000 ? "ottimo" : staffProductivity >= 9500 ? "medio" : "scarso", note: "Fatturato mensile stimato per addetto." },
+  ];
+  const personnelRows = workflowCosts.filter((row) => row.stepIndex === 3);
+  const activePersonnelRows = personnelRows.filter((row) => row.enabled);
+  const estimatedPersonnelCount = Math.max(activePersonnelRows.length, estimatedStaffCount, 1);
+  const personnelMonthlyCost = activePersonnelRows.reduce((sum, row) => sum + row.amount, 0) || effectiveInputs.laborCostMonthly;
+  const personnelAnnualCost = personnelMonthlyCost * 12;
+  const personnelHourlyCost = personnelMonthlyCost / Math.max(estimatedPersonnelCount * 172, 1);
+  const personnelCostPerCover = personnelMonthlyCost / Math.max(effectiveInputs.coversPerDay * Math.max(effectiveInputs.openingDays, 1), 1);
+  const personnelContributionMarginRatio = Math.max(1 - (inputs.foodCostPct + inputs.beverageCostPct) / 100, 0.08);
+  const personnelBreakEvenRevenue = personnelMonthlyCost / personnelContributionMarginRatio;
+  const personnelProductivityRows = [
+    { name: "Fatturato/addetto", value: staffProductivity },
+    { name: "Costo/addetto", value: personnelMonthlyCost / estimatedPersonnelCount },
+    { name: "Costo/coperto", value: personnelCostPerCover },
+  ];
+  const personnelServiceRows = [
+    { name: "Pranzo", people: Math.max(Math.round(estimatedPersonnelCount * 0.45), 1), revenue: kpis.revenueMonthly * 0.38, hours: 4 },
+    { name: "Cena", people: Math.max(Math.round(estimatedPersonnelCount * 0.7), 1), revenue: kpis.revenueMonthly * 0.52, hours: 5 },
+    { name: "Delivery", people: Math.max(Math.round(estimatedPersonnelCount * 0.16), 1), revenue: revenueChannelRows.find((item) => item.key === "delivery")?.monthlyRevenue ?? kpis.revenueMonthly * 0.08, hours: 3 },
+  ].map((row) => {
+    const monthlyCost = row.people * row.hours * personnelHourlyCost * Math.max(effectiveInputs.openingDays, 1);
+    return { ...row, monthlyCost, laborPct: row.revenue > 0 ? (monthlyCost / row.revenue) * 100 : 0 };
+  });
+  const personnelScenarioRows = [
+    { name: "5 giorni", revenue: kpis.revenueMonthly * 0.86, cost: personnelMonthlyCost * 0.88 },
+    { name: "7 giorni", revenue: kpis.revenueMonthly * 1.12, cost: personnelMonthlyCost * 1.18 },
+    { name: "Brigata ridotta", revenue: kpis.revenueMonthly * 0.94, cost: personnelMonthlyCost * 0.86 },
+    { name: "Doppio turno", revenue: kpis.revenueMonthly * 1.2, cost: personnelMonthlyCost * 1.14 },
+  ].map((row) => ({ ...row, margin: row.revenue - row.cost }));
+  const personnelAlerts = [
+    kpis.laborPct > 35 ? "Il costo lavoro supera una soglia prudente: prima di aumentare ricavi attesi, verifica turni, coperti reali e ore improduttive." : "Il costo lavoro appare coerente con il fatturato previsto, ma va monitorato per fascia di servizio.",
+    personnelServiceRows.some((row) => row.laborPct > 32) ? "Una fascia di servizio assorbe troppo personale rispetto ai ricavi stimati. Valuta organico ridotto o spesa media piu alta." : "Le fasce di servizio risultano equilibrate rispetto ai ricavi stimati.",
+    (personnelScenarioRows.find((row) => row.name === "Brigata ridotta")?.margin ?? 0) > personnelScenarioRows[0].margin ? "La brigata ridotta migliora il margine, ma va verificata con qualita del servizio e carico operativo." : "Gli scenari mostrano quanto il margine dipenda da apertura e copertura dei turni.",
   ];
   const aiAlerts = [
     inputs.foodCostPct > 35
@@ -2659,6 +2693,8 @@ export default function Home() {
                     ? "Procedi per passi brevi: ogni sezione diventa verde solo quando viene confermata. I dati restano modificabili in ogni momento."
                     : activePage === "summary"
                       ? "Questa pagina confronta gli scenari facendo emergere fatturato, costi totali, incidenza percentuale e risultato dopo finanza e ammortamenti."
+                      : activePage === "personale"
+                        ? "Qui capisci se il costo del personale e proporzionato ai ricavi, ai coperti e alle fasce di servizio previste."
                         : activePage === "finance"
                           ? "Qui si leggono investimenti, ammortamenti economici, uscite di cassa reali e l'effetto di eventuali finanziamenti."
                           : activePage === "whatif"
@@ -2862,6 +2898,104 @@ export default function Home() {
                   <p className="mt-3 text-xs leading-5 text-slate-500">{row.note}</p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className={(activePage === "personale" ? "" : "hidden ") + "space-y-6"}>
+            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Modulo personale</p>
+                  <h2 className="mt-1 lp-card-value-sm text-slate-950">Costo lavoro e produttivita</h2>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+                    Legge le voci confermate nello step Personale e le trasforma in indicatori semplici: costo reale, produttivita, costo per coperto e fasce da controllare.
+                  </p>
+                </div>
+                <span className={(kpis.laborPct <= 30 ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : kpis.laborPct <= 35 ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-rose-50 text-rose-700 ring-rose-200") + " rounded-full px-3 py-1.5 text-xs font-semibold ring-1"}>
+                  {kpis.laborPct <= 30 ? "Equilibrato" : kpis.laborPct <= 35 ? "Da monitorare" : "Attenzione"}
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <KpiCard icon={Users} label="Costo mensile" value={euro.format(personnelMonthlyCost)} detail={`${euro.format(personnelAnnualCost)} annui`} tone={kpis.laborPct <= 35 ? "green" : "red"} />
+                <KpiCard icon={Gauge} label="Costo lavoro" value={kpis.laborPct.toFixed(1) + "%"} detail="Sul fatturato previsto" tone={kpis.laborPct <= 30 ? "green" : kpis.laborPct <= 35 ? "slate" : "red"} />
+                <KpiCard icon={Activity} label="Costo per coperto" value={euro.format(personnelCostPerCover)} detail="Personale / coperti mese" tone="blue" />
+                <KpiCard icon={TrendingUp} label="Fatturato/addetto" value={euro.format(staffProductivity)} detail={`${estimatedPersonnelCount} persone stimate`} tone="green" />
+                <KpiCard icon={BadgeEuro} label="BEP personale" value={euro.format(personnelBreakEvenRevenue)} detail="Ricavi minimi per coprire lavoro" tone="slate" />
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="font-semibold text-slate-950">Produttivita essenziale</p>
+                <p className="mt-1 text-sm text-slate-500">Tre numeri per capire se il personale sta generando valore.</p>
+                <div className="mt-4 h-72">
+                  {mounted && activePage === "personale" ? (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={240} minHeight={220}>
+                      <BarChart data={personnelProductivityRows}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+                        <Tooltip formatter={(value) => euro.format(Number(value))} />
+                        <Bar dataKey="value" fill="#0f766e" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <ChartShell />
+                  )}
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="font-semibold text-slate-950">Fasce di servizio</p>
+                <p className="mt-1 text-sm text-slate-500">Stima del peso del personale per pranzo, cena e delivery.</p>
+                <div className="mt-4 grid gap-3">
+                  {personnelServiceRows.map((row) => (
+                    <div key={row.name} className="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-slate-950">{row.name}</p>
+                        <span className={(row.laborPct > 32 ? "bg-rose-50 text-rose-700 ring-rose-200" : "bg-emerald-50 text-emerald-700 ring-emerald-200") + " rounded-full px-2.5 py-1 text-xs font-semibold ring-1"}>
+                          {row.laborPct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-500">{row.people} persone · costo stimato {euro.format(row.monthlyCost)} · ricavi {euro.format(row.revenue)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="font-semibold text-slate-950">Scenari organizzativi</p>
+                <p className="mt-1 text-sm text-slate-500">Confronto rapido tra aperture, brigata ridotta e doppio turno.</p>
+                <div className="mt-4 h-72">
+                  {mounted && activePage === "personale" ? (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={240} minHeight={220}>
+                      <BarChart data={personnelScenarioRows}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
+                        <Tooltip formatter={(value) => euro.format(Number(value))} />
+                        <Bar dataKey="margin" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <ChartShell />
+                  )}
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="font-semibold text-slate-950">AI suggerisce</p>
+                <div className="mt-4 grid gap-3">
+                  {personnelAlerts.map((alert) => (
+                    <div key={alert} className="rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-700 ring-1 ring-slate-200">
+                      {alert}
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => window.print()} className="mt-4 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+                  Stampa analisi personale
+                </button>
+              </div>
             </div>
           </section>
 
