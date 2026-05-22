@@ -233,7 +233,7 @@ type VenueRoom = {
 
 type WorkflowCostPreset = Omit<WorkflowCostRow, "id" | "stepIndex" | "enabled" | "custom">;
 
-const cuisineTypePresets = ["Italiana", "Pizza", "Bistrot", "Pesce", "Fine dining", "Fast casual"];
+const cuisineTypePresets = ["Italiana tradizionale", "Pizzeria", "Bistrot", "Pesce", "Carne / steakhouse", "Sushi / fusion", "Vegetariana / healthy", "Fine dining", "Fast casual", "Bar tavola fredda", "Street food", "Cucina regionale"];
 const restaurantFormatPresets = ["Ristorante tradizionale", "Pizzeria", "Bistrot", "Trattoria", "Delivery + sala", "Take away", "Bar con cucina", "Locale stagionale"];
 const zonePresets = ["Centro storico", "Zona turistica", "Zona uffici", "Quartiere residenziale", "Zona universitaria", "Centro commerciale", "Lungomare / area stagionale", "Periferia servita"];
 const serviceBandDefinitions: { key: ServiceBandKey; label: string; hours: number }[] = [
@@ -482,7 +482,7 @@ const workflowCostPresets: WorkflowCostPreset[][] = [
     { label: "Scenario ottimistico", category: "Scenario", amount: 450, vat: 22, note: "Upside su occupazione e spesa media per persona." },
   ],
   [
-    { label: "Buffer liquidita", category: "Cassa", amount: 30000, vat: 0, note: "Riserva minima operativa consigliata." },
+    { label: "Liquidità di sicurezza", category: "Cassa", amount: 30000, vat: 0, note: "Riserva minima operativa consigliata." },
     { label: "Scorte iniziali", category: "Capitale circolante", amount: 9000, vat: 10, note: "Food, beverage e consumabili di avvio." },
     { label: "IVA e tasse stimate", category: "Fiscale", amount: 8500, vat: 0, note: "Prima stima fabbisogno fiscale." },
   ],
@@ -1216,16 +1216,16 @@ export default function Home() {
     return { saldo: inputs.initialCash + (operating - loanPayment) * (index + 1), operativo: operating };
   });
   const startupLossReserve = Math.max(-Math.min(...firstSixMonthCashPreview.map((row) => row.operativo - loanPayment)), 0) * 6;
-  const safetyBuffer = Math.max(kpis.revenueMonthly * 0.08, (effectiveInputs.fixedCostsMonthly + effectiveInputs.laborCostMonthly + loanPayment) * 1.2);
+  const safetyReserve = Math.max(kpis.revenueMonthly * 0.08, (effectiveInputs.fixedCostsMonthly + effectiveInputs.laborCostMonthly + loanPayment) * 1.2);
   const legalOpeningCostPreview = legalForm === "Ditta individuale" ? 450 : legalForm === "Società di persone" ? 1200 : legalForm === "SRL" ? 2200 : legalForm === "SRLS" ? 900 : legalForm === "Franchising" ? 3500 : 1500;
   const oneTimeBureaucracyCostsPreview = bureaucracyCosts.filter((row) => !row.recurring).reduce((sum, row) => sum + row.amount, 0) + legalOpeningCostPreview;
-  const initialFinancialNeed = investmentTotal + oneTimeBureaucracyCostsPreview + initialInventoryNeed + workingCapitalNeed + startupLossReserve + safetyBuffer;
+  const initialFinancialNeed = investmentTotal + oneTimeBureaucracyCostsPreview + initialInventoryNeed + workingCapitalNeed + startupLossReserve + safetyReserve;
   const availableInitialFunding = ownCapital + financingAmount + confirmedGrants + inputs.initialCash;
   const initialFundingGap = Math.max(initialFinancialNeed - availableInitialFunding, 0);
   const sixMonthMinimumCash = Math.min(...firstSixMonthCashPreview.map((row) => row.saldo));
-  const liquidityStressLevel = initialFundingGap > 0 || sixMonthMinimumCash < safetyBuffer * 0.45
+  const liquidityStressLevel = initialFundingGap > 0 || sixMonthMinimumCash < safetyReserve * 0.45
     ? { tone: "red", label: "Rischio liquidità alto", text: "Attenzione: il progetto rischia crisi di liquidità nei primi 6 mesi." }
-    : sixMonthMinimumCash < safetyBuffer
+    : sixMonthMinimumCash < safetyReserve
       ? { tone: "yellow", label: "Liquidità da rafforzare", text: "Il progetto regge, ma il margine di sicurezza nei primi mesi è limitato." }
       : { tone: "green", label: "Liquidità iniziale adeguata", text: "La dotazione iniziale copre investimenti, scorte, capitale circolante e liquidità di sicurezza." };
   const initialNeedRows = [
@@ -1234,10 +1234,11 @@ export default function Home() {
     { name: "Scorte iniziali", value: initialInventoryNeed, note: "Materie prime, beverage, packaging e consumabili." },
     { name: "Capitale circolante", value: workingCapitalNeed, note: "Cassa operativa per coprire costi prima dell'equilibrio." },
     { name: "Perdite iniziali", value: startupLossReserve, note: "Riserva prudenziale per eventuali primi mesi negativi." },
-    { name: "Liquidità di sicurezza", value: safetyBuffer, note: "Cuscinetto per imprevisti e ritardi." },
+    { name: "Liquidità di sicurezza", value: safetyReserve, note: "Riserva prudenziale per imprevisti e ritardi." },
   ];
+  const deliveryChannelEnabled = revenueChannels.some((channel) => channel.key === "delivery" && channel.enabled);
   const deliveryCostRow = costRows.find((row) => row.name.toLowerCase().includes("delivery"));
-  const deliveryDependencyPct = kpis.revenueAnnual && deliveryCostRow ? (deliveryCostRow.annual / kpis.revenueAnnual) * 100 : 0;
+  const deliveryDependencyPct = deliveryChannelEnabled && kpis.revenueAnnual && deliveryCostRow ? (deliveryCostRow.annual / kpis.revenueAnnual) * 100 : 0;
   const seasonalSeats = venueRooms.reduce((sum, room) => sum + (room.season === "Tutto l'anno" ? 0 : room.seats), 0);
   const seasonalityRiskPct = venuePeakSeats ? (seasonalSeats / venuePeakSeats) * 100 : 0;
   const leveragePct = investmentTotal ? (financingAmount / investmentTotal) * 100 : 0;
@@ -1249,12 +1250,12 @@ export default function Home() {
       risk: leveragePct > 70 ? 82 : leveragePct > 50 ? 58 : 28,
       detail: leveragePct > 70 ? "Debito molto pesante rispetto agli investimenti." : leveragePct > 50 ? "Debito rilevante ma ancora gestibile se la cassa regge." : "Copertura finanziaria equilibrata.",
     },
-    {
+    deliveryChannelEnabled ? {
       label: "Dipendenza delivery",
       value: deliveryDependencyPct,
       risk: deliveryDependencyPct > 8 ? 70 : deliveryDependencyPct > 4 ? 45 : 20,
       detail: deliveryDependencyPct > 8 ? "Commissioni e domanda delivery incidono molto." : deliveryDependencyPct > 4 ? "Delivery presente, da monitorare nei margini." : "Dipendenza delivery contenuta.",
-    },
+    } : null,
     {
       label: "Costo lavoro",
       value: kpis.laborPct,
@@ -1285,7 +1286,7 @@ export default function Home() {
       risk: concentrationRevenuePct > 78 ? 72 : concentrationRevenuePct > 65 ? 48 : 25,
       detail: concentrationRevenuePct > 78 ? "Ricavi troppo concentrati su pranzo o cena." : concentrationRevenuePct > 65 ? "Mix pranzo/cena sbilanciato." : "Mix ricavi più distribuito.",
     },
-  ];
+  ].filter(Boolean) as Array<{ label: string; value: number; risk: number; detail: string }>;
   const averageRisk = riskFactors.reduce((sum, factor) => sum + factor.risk, 0) / Math.max(riskFactors.length, 1);
   const launchPilotRiskScore = Math.round(Math.max(0, Math.min(100, 100 - averageRisk)));
   const riskLevel = launchPilotRiskScore >= 72
@@ -1417,14 +1418,14 @@ export default function Home() {
     { label: "Clienti/giorno", value: Math.ceil(breakEvenCustomersDaily).toLocaleString("it-IT"), note: "Soglia giornaliera media con i giorni di apertura impostati." },
     { label: "Spesa media per persona", value: euro.format(inputs.averageTicket), note: "Valore IVA esclusa usato per calcolare ricavi e pareggio." },
     ...breakEvenServiceRows.map((row) => ({ label: row.label, value: Math.ceil(row.value).toLocaleString("it-IT"), note: row.note })),
-    { label: "Delivery", value: Math.ceil(breakEvenDeliveryOrdersMonthly).toLocaleString("it-IT"), note: "Ordini/mese se il pareggio fosse coperto dal delivery." },
+    ...(deliveryChannelEnabled ? [{ label: "Delivery", value: Math.ceil(breakEvenDeliveryOrdersMonthly).toLocaleString("it-IT"), note: "Ordini/mese se il pareggio fosse coperto dal delivery." }] : []),
     { label: "BEP complessivo ricavi", value: Math.ceil(combinedChannelBreakEvenUnits).toLocaleString("it-IT"), note: "Unità/mese usando solo le tipologie ricavo selezionate." },
     ...selectedRevenueChannelRows.map((channel) => ({ label: channel.label, value: Math.ceil(channel.breakEvenUnits).toLocaleString("it-IT"), note: "Pareggio singolo del canale con margine prudenziale " + euro.format(channel.contribution) + "." })),
   ];
   const smartBepChartData = [
     { name: "Clienti/giorno", value: Math.ceil(breakEvenCustomersDaily) },
     ...breakEvenServiceRows.map((row) => ({ name: row.label, value: Math.ceil(row.value) })),
-    { name: "Delivery mese", value: Math.ceil(breakEvenDeliveryOrdersMonthly) },
+    ...(deliveryChannelEnabled ? [{ name: "Delivery mese", value: Math.ceil(breakEvenDeliveryOrdersMonthly) }] : []),
     ...selectedRevenueChannelRows.map((channel) => ({ name: channel.label, value: Math.ceil(channel.breakEvenUnits) })),
   ];
   const breakEvenCostChartData = [
@@ -1479,7 +1480,7 @@ export default function Home() {
   const personnelServiceRows = [
     { name: "Pranzo", people: Math.max(Math.round(estimatedPersonnelCount * 0.45), 1), revenue: kpis.revenueMonthly * 0.38, hours: 4 },
     { name: "Cena", people: Math.max(Math.round(estimatedPersonnelCount * 0.7), 1), revenue: kpis.revenueMonthly * 0.52, hours: 5 },
-    { name: "Delivery", people: Math.max(Math.round(estimatedPersonnelCount * 0.16), 1), revenue: revenueChannelRows.find((item) => item.key === "delivery")?.monthlyRevenue ?? kpis.revenueMonthly * 0.08, hours: 3 },
+    ...(deliveryChannelEnabled ? [{ name: "Delivery", people: Math.max(Math.round(estimatedPersonnelCount * 0.16), 1), revenue: revenueChannelRows.find((item) => item.key === "delivery")?.monthlyRevenue ?? kpis.revenueMonthly * 0.08, hours: 3 }] : []),
   ].map((row) => {
     const monthlyCost = row.people * row.hours * personnelHourlyCost * Math.max(effectiveInputs.openingDays, 1);
     return { ...row, monthlyCost, laborPct: row.revenue > 0 ? (monthlyCost / row.revenue) * 100 : 0 };
@@ -3432,7 +3433,7 @@ export default function Home() {
                   <label className="text-sm font-medium text-slate-700">Mq locale<input type="number" min="1" value={venueProfile.squareMeters} onChange={(event) => updateVenueProfile("squareMeters", Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-right outline-none transition focus:border-teal-500" /></label>
                   <label className="text-sm font-medium text-slate-700">Flusso clienti potenziale<input list="foot-traffic-presets" value={venueProfile.footTraffic} onChange={(event) => updateVenueProfile("footTraffic", event.target.value)} placeholder="Es. buono, prevalentemente serale, forte presenza uffici..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="foot-traffic-presets">{footTrafficPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Indica quante persone passano o possono essere intercettate dalla location.</span></label>
                   <label className="text-sm font-medium text-slate-700">Target prevalente<select value={venueProfile.target} onChange={(event) => updateVenueProfile("target", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{targetPresets.map((preset) => <option key={preset}>{preset}</option>)}</select></label>
-                  <label className="text-sm font-medium text-slate-700">Tipologia cucina<select value={venueProfile.cuisineType} onChange={(event) => updateVenueProfile("cuisineType", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{cuisineTypePresets.map((preset) => <option key={preset}>{preset}</option>)}</select></label>
+                  <label className="text-sm font-medium text-slate-700">Cucina<input list="cuisine-type-presets" value={venueProfile.cuisineType} onChange={(event) => updateVenueProfile("cuisineType", event.target.value)} placeholder="Es. cucina romana, pesce, pizzeria gourmet..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="cuisine-type-presets">{cuisineTypePresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un preset o scrivi liberamente la cucina reale del locale.</span></label>
                   <label className="text-sm font-medium text-slate-700">Format locale<input list="restaurant-format-presets" value={venueProfile.restaurantFormat} onChange={(event) => updateVenueProfile("restaurantFormat", event.target.value)} placeholder="Es. osteria moderna, pizzeria gourmet, bar pranzo veloce..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="restaurant-format-presets">{restaurantFormatPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un suggerimento o scrivi liberamente il format: verrà usato in analisi, scenari e report.</span></label>
                   <label className="text-sm font-medium text-slate-700">Tipo apertura<select value={venueProfile.openingMode} onChange={(event) => updateVenueProfile("openingMode", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500"><option>Annuale</option><option>Stagionale</option></select></label><label className="text-sm font-medium text-slate-700">Chiusura settimanale<select value={venueProfile.weeklyClosingDay} onChange={(event) => updateVenueProfile("weeklyClosingDay", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{weeklyClosingDays.map((day) => <option key={day}>{day}</option>)}</select></label>{venueProfile.openingMode === "Stagionale" ? (<><label className="text-sm font-medium text-slate-700">Inizio stagione<input type="date" value={venueProfile.seasonStartDate} onChange={(event) => updateVenueProfile("seasonStartDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700">Fine stagione<input type="date" value={venueProfile.seasonEndDate} onChange={(event) => updateVenueProfile("seasonEndDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label></>) : null}<div className="rounded-md bg-teal-50 p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Giorni apertura calcolati</p><p className="mt-1 lp-card-value-sm text-teal-950">{effectiveOpeningDaysAnnual}</p><p className="text-xs text-teal-700">Tiene conto di periodo e chiusura settimanale.</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Capienza annua</p><p className="mt-1 lp-card-value-sm text-teal-950">{Math.round(venueAnnualCapacity).toLocaleString("it-IT")}</p></div>
@@ -4195,7 +4196,7 @@ export default function Home() {
                 <KpiCard icon={BadgeEuro} label="Fabbisogno reale" value={euro.format(initialFinancialNeed)} detail="Investimenti + avvio + liquidità di sicurezza" tone="blue" />
                 <KpiCard icon={Banknote} label="Copertura disponibile" value={euro.format(availableInitialFunding)} detail="Mezzi propri, debito, contributi certi e cassa" tone="green" />
                 <KpiCard icon={AlertTriangle} label="Gap iniziale" value={euro.format(initialFundingGap)} detail="Da coprire prima dell'apertura" tone={initialFundingGap > 0 ? "red" : "green"} />
-                <KpiCard icon={Activity} label="Cassa minima 6 mesi" value={euro.format(sixMonthMinimumCash)} detail="Punto più basso simulato" tone={sixMonthMinimumCash < safetyBuffer ? "red" : "green"} />
+                <KpiCard icon={Activity} label="Cassa minima 6 mesi" value={euro.format(sixMonthMinimumCash)} detail="Punto più basso simulato" tone={sixMonthMinimumCash < safetyReserve ? "red" : "green"} />
               </div>
               <div className={"mt-5 rounded-md p-4 text-sm font-medium ring-1 " + (liquidityStressLevel.tone === "red" ? "bg-rose-50 text-rose-800 ring-rose-100" : liquidityStressLevel.tone === "yellow" ? "bg-amber-50 text-amber-800 ring-amber-100" : "bg-emerald-50 text-emerald-800 ring-emerald-100")}>
                 {liquidityStressLevel.text}
@@ -4549,7 +4550,7 @@ export default function Home() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">LaunchPilot Indice Rischio™</p>
                 <h2 className="mt-1 lp-card-value-sm text-slate-950">Valutazione rischio progetto</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Score automatico da 0 a 100: più alto è il punteggio, più basso è il rischio. La lettura combina leva finanziaria, delivery, costo lavoro, stagionalità, margine, location e concentrazione dei ricavi.
+                  Score automatico da 0 a 100: più alto è il punteggio, più basso è il rischio. La lettura combina leva finanziaria, costo lavoro, stagionalità, margine, location, concentrazione dei ricavi e solo i canali selezionati.
                 </p>
               </div>
               <span className={"rounded-full px-3 py-1.5 text-xs font-semibold ring-1 " + (riskLevel.tone === "green" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : riskLevel.tone === "yellow" ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-rose-50 text-rose-700 ring-rose-200")}>
