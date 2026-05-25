@@ -1925,10 +1925,6 @@ export default function Home() {
   const selectedVariableGeneralTotal = activeWorkflowRows.filter((row) => row.category === "Costi variabili" && row.enabled).reduce((sum, row) => sum + row.amount, 0);
   const foodAndBeverageStockTotal = selectedFoodCostTotal + selectedBeverageTotal;
   const estimatedMonthlyRevenue = Math.max(kpis.revenueMonthly, 1);
-  const foodCostMinPct = Math.max(inputs.foodCostPct - 4, 0);
-  const foodCostMaxPct = inputs.foodCostPct + 5;
-  const foodCostIdealPct = 30;
-  const foodCostActualPct = (selectedFoodCostTotal / estimatedMonthlyRevenue) * 100;
   const beverageCostActualPct = (selectedBeverageTotal / estimatedMonthlyRevenue) * 100;
   const foodBeverageRevenuePct = (foodAndBeverageStockTotal / estimatedMonthlyRevenue) * 100;
   const beverageOnAllSelectedCostsPct = activeWorkflowTotal ? (selectedBeverageTotal / activeWorkflowTotal) * 100 : 0;
@@ -3897,12 +3893,6 @@ export default function Home() {
                   <div className="rounded-md bg-white p-3 ring-1 ring-amber-100"><p className="text-xs font-semibold uppercase text-amber-600">Food + beverage / fatturato</p><p className="lp-card-value-sm mt-1">{foodBeverageRevenuePct.toFixed(1)}%</p><p className="text-xs text-amber-700">Sul fatturato mensile stimato.</p></div>
                 </div>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Nota food cost.</strong> Nel food cost vanno considerati anche pasti del personale, assaggi, scarti, invenduto, differenze inventario e sprechi fisiologici. Per questo trovi righe dedicate da confermare o modificare.</div>
-                <div className="grid gap-3 md:grid-cols-4">
-                  <div className="rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">FC minimo</p><p className="lp-card-value-sm mt-1">{foodCostMinPct.toFixed(1)}%</p></div>
-                  <div className="rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">FC massimo</p><p className="lp-card-value-sm mt-1">{foodCostMaxPct.toFixed(1)}%</p></div>
-                  <div className="rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">FC a consuntivo</p><p className="lp-card-value-sm mt-1">{foodCostActualPct.toFixed(1)}%</p></div>
-                  <div className="rounded-lg bg-white p-4 ring-1 ring-emerald-200"><p className="text-xs font-semibold uppercase text-emerald-600">FC ideale</p><p className="lp-card-value-sm mt-1">{foodCostIdealPct.toFixed(1)}%</p></div>
-                </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Tabelle costi per categoria</p>
