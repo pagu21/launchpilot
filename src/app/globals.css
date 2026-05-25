@@ -125,6 +125,21 @@ body {
     position: relative;
     scrollbar-gutter: stable;
   }
+
+  .lp-table-scroll {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-height: 1px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lp-table-scroll > table {
+    display: table;
+    table-layout: auto;
+  }
 }
 
 @media screen {

@@ -851,6 +851,7 @@ export default function Home() {
     { role: "assistant", text: "Ciao, sono AI suggerisce per il Business Plan. Posso aiutarti a capire se il documento è bancabile, credibile e presentabile." },
   ]);
   const [investmentPrintMode, setInvestmentPrintMode] = useState<"selected" | "all">("all");
+  const [showInvestmentPrintPreview, setShowInvestmentPrintPreview] = useState(false);
   const [visibleInvestmentCategories, setVisibleInvestmentCategories] = useState<Record<string, boolean>>({});
   const [visibleWorkflowCostCategories, setVisibleWorkflowCostCategories] = useState<Record<string, boolean>>({});
   const [expandedAiAlertId, setExpandedAiAlertId] = useState<string | null>(null);
@@ -2335,6 +2336,14 @@ export default function Home() {
     }));
   }
 
+  function openInvestmentCategory(category: string) {
+    setVisibleInvestmentCategories((current) => ({
+      ...current,
+      [category]: true,
+    }));
+    focusMainContent("investimenti-" + slugify(category));
+  }
+
   function showAllInvestmentCategories() {
     setVisibleInvestmentCategories({});
   }
@@ -2386,6 +2395,7 @@ export default function Home() {
 
   function showInvestmentPreview(mode: "selected" | "all") {
     setInvestmentPrintMode(mode);
+    setShowInvestmentPrintPreview(true);
     window.setTimeout(() => {
       document.getElementById("investment-print-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
@@ -2393,7 +2403,25 @@ export default function Home() {
 
   function printInvestments(mode: "selected" | "all" = investmentPrintMode) {
     setInvestmentPrintMode(mode);
+    setShowInvestmentPrintPreview(true);
     window.setTimeout(() => window.print(), 80);
+  }
+
+  function focusMainContent(targetId = "launch-main-content") {
+    window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }
+
+  function selectWorkflowStep(index: number) {
+    setActiveStep(index);
+    setActivePage("workflow");
+    const targetId =
+      index === 1 ? "investimenti-" + slugify(investmentRowsByCategory[0]?.category ?? "cucina-professionale") :
+      index === 3 ? "personnel-tables-start" :
+      index === 4 ? "variable-cost-tables-start" :
+      "launch-main-content";
+    focusMainContent(targetId);
   }
 
   function updateInput(key: keyof ProjectInputs, value: number) {
@@ -2795,13 +2823,16 @@ export default function Home() {
             />
           </div>
           <nav className="hidden h-14 max-w-[620px] items-center gap-1 overflow-hidden rounded-md bg-slate-100 p-1 xl:flex">
-            {visibleAppPages.map((page) => (
-              <button
-                key={page.id}
-                type="button"
-                onClick={() => setActivePage(page.id)}
-                className={"h-11 shrink-0 whitespace-nowrap rounded px-4 text-sm font-semibold leading-none transition " + (activePage === page.id ? "bg-teal-600 text-white shadow-sm ring-1 ring-teal-700/10" : "text-slate-600 hover:bg-white hover:text-slate-950")}
-              >
+	            {visibleAppPages.map((page) => (
+	              <button
+	                key={page.id}
+	                type="button"
+	                onClick={() => {
+	                  setActivePage(page.id);
+	                  focusMainContent();
+	                }}
+	                className={"h-11 shrink-0 whitespace-nowrap rounded px-4 text-sm font-semibold leading-none transition " + (activePage === page.id ? "bg-teal-600 text-white shadow-sm ring-1 ring-teal-700/10" : "text-slate-600 hover:bg-white hover:text-slate-950")}
+	              >
                 {page.label}
               </button>
             ))}
@@ -2855,10 +2886,7 @@ export default function Home() {
                 return (
                   <button
                     key={step}
-                    onClick={() => {
-                      setActiveStep(index);
-                      setActivePage("workflow");
-                    }}
+                    onClick={() => selectWorkflowStep(index)}
                     className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition ${
                       current
                         ? "bg-teal-600 text-white shadow-sm ring-2 ring-teal-200"
@@ -2913,7 +2941,10 @@ export default function Home() {
                 <button
                   key={page.id}
                   type="button"
-                  onClick={() => setActivePage(page.id)}
+                  onClick={() => {
+                    setActivePage(page.id);
+                    focusMainContent();
+                  }}
                   className={"rounded-md px-3 py-2 text-left transition " + (activePage === page.id ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950")}
                   title={page.description}
                 >
@@ -2957,7 +2988,7 @@ export default function Home() {
           </section>
         </aside>
 
-        <div className="space-y-6">
+        <div id="launch-main-content" className="scroll-mt-24 space-y-6">
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -3714,7 +3745,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-teal-100 bg-white/95 p-3 shadow-sm backdrop-blur no-print md:sticky md:top-[76px] md:z-10">
+	                <div id="investment-tables-start" className="scroll-mt-24 rounded-lg border border-teal-100 bg-white/95 p-3 shadow-sm backdrop-blur no-print">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold leading-tight text-slate-950">Categorie<br />costi</p>
@@ -3737,7 +3768,7 @@ export default function Home() {
                         <button
                           key={group.category}
                           type="button"
-                          onClick={() => toggleInvestmentCategory(group.category)}
+                          onClick={() => openInvestmentCategory(group.category)}
                           className={"group rounded-lg border p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md " + (isVisible ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50 opacity-70")}
                           title={isVisible ? "Clicca per chiudere la tabella. Il titolo resterà visibile." : "Clicca per aprire la tabella."}
                         >
@@ -3761,12 +3792,12 @@ export default function Home() {
                   </nav>
                 </div>
 
-                {visibleInvestmentRowsByCategory.map((group) => {
+	                {visibleInvestmentRowsByCategory.map((group, groupIndex) => {
                   const categoryTotalAll = group.rows.reduce((sum, row) => sum + row.total, 0);
                   const theme = investmentCategoryThemes[investmentRowsByCategory.findIndex((item) => item.category === group.category) % investmentCategoryThemes.length];
                   const isTableOpen = visibleInvestmentCategories[group.category] !== false;
                   return (
-                    <div id={"investimenti-" + slugify(group.category)} key={group.category} className="scroll-mt-28 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+	                    <div id={"investimenti-" + slugify(group.category)} key={group.category} className="scroll-mt-24 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                       <div className={"flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 " + theme.header}>
                         <div>
                           <h3 className={"text-base font-semibold " + theme.title}>{group.category}</h3>
@@ -3835,7 +3866,7 @@ export default function Home() {
                           );
                         })}
                       </div>
-                      <div className="hidden overflow-x-auto md:block">
+                      <div className="lp-table-scroll overflow-x-auto">
                         <table className="w-full min-w-[1180px] text-left text-xs">
                           <thead className={"text-[11px] uppercase tracking-wide " + theme.thead}>
                             <tr>
@@ -3903,14 +3934,19 @@ export default function Home() {
                     </div>
                   );
                 })}
-                <div id="investment-print-preview" className="lp-print-preview-wrap scroll-mt-28">
+                <div id="investment-print-preview" className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2 no-print">
                     <div>
                       <p className="text-sm font-semibold text-slate-950">Anteprima documento A4 reale</p>
-                      <p className="text-xs text-slate-500">Questa è l’anteprima grande dentro l’app: puoi scorrerla e leggerla senza aprire la finestra della stampante.</p>
+                      <p className="text-xs text-slate-500">{showInvestmentPrintPreview ? "Questa è l’anteprima grande dentro l’app: puoi scorrerla e leggerla senza aprire la finestra della stampante." : "L’anteprima è chiusa. Aprila quando vuoi controllare il documento prima di stampare."}</p>
                     </div>
-                    <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{investmentPrintMode === "selected" ? "Costi scelti" : "Promemoria completo"}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{investmentPrintMode === "selected" ? "Costi scelti" : "Promemoria completo"}</span>
+                      <button type="button" onClick={() => setShowInvestmentPrintPreview((current) => !current)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">{showInvestmentPrintPreview ? "Chiudi anteprima" : "Apri anteprima"}</button>
+                    </div>
                   </div>
+                  {showInvestmentPrintPreview ? (
+                  <div className="lp-print-preview-wrap">
                   <div className="lp-print-area">
                   <h1>LaunchPilot - Costi investimento</h1>
                   <p>{investmentPrintMode === "selected" ? "Solo costi confermati dal cliente" : "Promemoria completo: tutte le voci disponibili"}</p>
@@ -3938,6 +3974,8 @@ export default function Home() {
                     );
                   })}
                   </div>
+                  </div>
+                  ) : null}
                 </div>
               </div>
             ) : activeStep === 4 ? (
@@ -3949,7 +3987,7 @@ export default function Home() {
                   <div className="rounded-md bg-white p-3 ring-1 ring-amber-100"><p className="text-xs font-semibold uppercase text-amber-600">Food + beverage / fatturato</p><p className="lp-card-value-sm mt-1">{foodBeverageRevenuePct.toFixed(1)}%</p><p className="text-xs text-amber-700">Sul fatturato mensile stimato.</p></div>
                 </div>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><strong>Nota food cost.</strong> Nel food cost vanno considerati anche pasti del personale, assaggi, scarti, invenduto, differenze inventario e sprechi fisiologici. Per questo trovi righe dedicate da confermare o modificare.</div>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div id="variable-cost-tables-start" className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Tabelle costi per categoria</p>
                     <p className="text-xs text-slate-500">Le categorie restano sempre visibili. Apri solo la tabella che vuoi compilare.</p>
@@ -4004,7 +4042,7 @@ export default function Home() {
                               );
                             })}
                           </div>
-                          <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                          <div className="lp-table-scroll overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
                         </>
                       ) : null}
                     </div>
@@ -4018,7 +4056,7 @@ export default function Home() {
                   <p className="mt-1 text-sm leading-6 text-slate-600">Spunta solo le persone che pensi di utilizzare. Gli importi sono costi mensili azienda indicativi da contratti nazionali e pratica di mercato: il cliente può modificarli sempre.</p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-3"><div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Ruoli scelti</p><p className="lp-card-value-sm mt-1">{activeWorkflowSelected}</p></div><div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Costo mese</p><p className="lp-card-value-sm mt-1">{euro.format(activeWorkflowTotal)}</p></div><div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Costo anno stimato</p><p className="lp-card-value-sm mt-1">{euro.format(activeWorkflowTotal * 12)}</p></div></div>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div id="personnel-tables-start" className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Tabelle personale per categoria</p>
                     <p className="text-xs text-slate-500">Apri una categoria alla volta se vuoi lavorare in modo più ordinato.</p>
