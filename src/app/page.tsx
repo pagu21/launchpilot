@@ -2339,10 +2339,10 @@ export default function Home() {
     setVisibleInvestmentCategories({});
   }
 
-  function hideUnselectedInvestmentCategories() {
+  function closeAllInvestmentCategories() {
     setVisibleInvestmentCategories(
       investmentRowsByCategory.reduce<Record<string, boolean>>((acc, group) => {
-        acc[group.category] = group.rows.some((row) => row.item.confirmed);
+        acc[group.category] = false;
         return acc;
       }, {}),
     );
@@ -2374,11 +2374,11 @@ export default function Home() {
     });
   }
 
-  function hideUnselectedWorkflowCostCategories(groups: { category: string; rows: WorkflowCostRow[] }[], stepIndex = activeStep) {
+  function closeAllWorkflowCostCategories(groups: { category: string }[], stepIndex = activeStep) {
     setVisibleWorkflowCostCategories((current) => {
       const next = { ...current };
       groups.forEach((group) => {
-        next[getWorkflowCostCategoryKey(stepIndex, group.category)] = group.rows.some((row) => row.enabled);
+        next[getWorkflowCostCategoryKey(stepIndex, group.category)] = false;
       });
       return next;
     });
@@ -3724,7 +3724,7 @@ export default function Home() {
                       <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 ring-1 ring-teal-100">{confirmedInvestmentCount} voci confermate</span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{openInvestmentCategoriesCount}/{investmentRowsByCategory.length} tabelle aperte</span>
                       <button type="button" onClick={showAllInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Apri tutte</button>
-                      <button type="button" onClick={hideUnselectedInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Apri solo scelte</button>
+                      <button type="button" onClick={closeAllInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Chiudi tutte le tabelle</button>
                     </div>
                   </div>
                   <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Categorie investimenti">
@@ -3956,7 +3956,7 @@ export default function Home() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => showAllWorkflowCostCategories(variableWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">Apri tutte</button>
-                    <button type="button" onClick={() => hideUnselectedWorkflowCostCategories(variableWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">Apri solo scelte</button>
+                    <button type="button" onClick={() => closeAllWorkflowCostCategories(variableWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">Chiudi tutte le tabelle</button>
                   </div>
                 </div>
                 {variableWorkflowGroups.map((group) => {
@@ -4025,7 +4025,7 @@ export default function Home() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => showAllWorkflowCostCategories(personnelWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700">Apri tutte</button>
-                    <button type="button" onClick={() => hideUnselectedWorkflowCostCategories(personnelWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700">Apri solo scelte</button>
+                    <button type="button" onClick={() => closeAllWorkflowCostCategories(personnelWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700">Chiudi tutte le tabelle</button>
                   </div>
                 </div>
                 {personnelWorkflowGroups.map((group) => {
