@@ -1128,7 +1128,8 @@ export default function Home() {
       return { category, rows, confirmedTotal };
     })
     .filter((group) => group.rows.length > 0 || group.category !== "Altro");
-  const visibleInvestmentRowsByCategory = investmentRowsByCategory.filter((group) => visibleInvestmentCategories[group.category] !== false);
+  const visibleInvestmentRowsByCategory = investmentRowsByCategory;
+  const openInvestmentCategoriesCount = investmentRowsByCategory.filter((group) => visibleInvestmentCategories[group.category] !== false).length;
   const confirmedInvestmentCount = confirmedInvestments.length;
   const suggestedInvestmentCount = investments.length;
   const printInvestmentGroups = investmentRowsByCategory
@@ -3684,13 +3685,13 @@ export default function Home() {
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold leading-tight text-slate-950">Categorie<br />costi</p>
-                      <p className="text-xs leading-5 text-slate-500">Scegli quali categorie vedere. Le categorie nascoste non vengono eliminate: restano disponibili e stampabili.</p>
+                      <p className="text-xs leading-5 text-slate-500">Apri solo la tabella che ti serve. Quando una tabella è chiusa resta visibile la riga del titolo.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 ring-1 ring-teal-100">{confirmedInvestmentCount} voci confermate</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{visibleInvestmentRowsByCategory.length}/{investmentRowsByCategory.length} categorie visibili</span>
-                      <button type="button" onClick={showAllInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Mostra tutte</button>
-                      <button type="button" onClick={hideUnselectedInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Solo con voci scelte</button>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{openInvestmentCategoriesCount}/{investmentRowsByCategory.length} tabelle aperte</span>
+                      <button type="button" onClick={showAllInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Apri tutte</button>
+                      <button type="button" onClick={hideUnselectedInvestmentCategories} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-700">Apri solo scelte</button>
                     </div>
                   </div>
                   <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Categorie investimenti">
@@ -3705,14 +3706,14 @@ export default function Home() {
                           type="button"
                           onClick={() => toggleInvestmentCategory(group.category)}
                           className={"group rounded-lg border p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md " + (isVisible ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50 opacity-70")}
-                          title={isVisible ? "Clicca per nascondere questa categoria dalla pagina." : "Clicca per mostrare questa categoria nella pagina."}
+                          title={isVisible ? "Clicca per chiudere la tabella. Il titolo resterà visibile." : "Clicca per aprire la tabella."}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <span className={(theme.title + " block truncate text-sm font-semibold")}>{group.category}</span>
                               <span className="mt-1 block text-xs text-slate-500">{confirmedRows} su {group.rows.length} voci selezionate</span>
                             </div>
-                            <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + (isVisible ? "bg-teal-50 text-teal-700 ring-teal-100" : "bg-slate-100 text-slate-500 ring-slate-200")}>{isVisible ? "Chiudi" : "Apri"}</span>
+                            <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + (isVisible ? "bg-teal-50 text-teal-700 ring-teal-100" : "bg-slate-100 text-slate-500 ring-slate-200")}>{isVisible ? "Aperta" : "Chiusa"}</span>
                           </div>
                           <div className="mt-3 h-2 rounded-full bg-slate-100">
                             <div className="h-2 rounded-full bg-teal-500 transition-all" style={{ width: `${completionPct}%` }} />
@@ -3727,29 +3728,25 @@ export default function Home() {
                   </nav>
                 </div>
 
-                {visibleInvestmentRowsByCategory.length === 0 ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                    Nessuna categoria visibile. Usa “Mostra tutte” oppure attiva una categoria dal menu sopra.
-                  </div>
-                ) : null}
-
-                {visibleInvestmentRowsByCategory.map((group, groupIndex) => {
+                {visibleInvestmentRowsByCategory.map((group) => {
                   const categoryTotalAll = group.rows.reduce((sum, row) => sum + row.total, 0);
                   const theme = investmentCategoryThemes[investmentRowsByCategory.findIndex((item) => item.category === group.category) % investmentCategoryThemes.length];
+                  const isTableOpen = visibleInvestmentCategories[group.category] !== false;
                   return (
-                    <div id={"investimenti-" + slugify(group.category)} key={group.category} className={("scroll-mt-28 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm " + (groupIndex === visibleInvestmentRowsByCategory.length - 1 ? "min-h-[70vh]" : "min-h-[360px]"))}>
+                    <div id={"investimenti-" + slugify(group.category)} key={group.category} className="scroll-mt-28 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                       <div className={"flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 " + theme.header}>
                         <div>
                           <h3 className={"text-base font-semibold " + theme.title}>{group.category}</h3>
-                          <p className={"text-sm " + theme.meta}>Conferma le voci utili. Quelle non spuntate restano come promemoria.</p>
+                          <p className={"text-sm " + theme.meta}>{isTableOpen ? "Tabella aperta: conferma le voci utili e correggi gli importi." : "Tabella chiusa: il titolo resta visibile, puoi riaprirla quando serve."}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                           <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 ring-1 ring-slate-200">Categoria {euro.format(group.confirmedTotal)}</span>
                           <span className="rounded-full bg-teal-50 px-3 py-1.5 text-teal-700 ring-1 ring-teal-100">{investmentTotal ? ((group.confirmedTotal / investmentTotal) * 100).toFixed(1) : "0.0"}% del totale</span>
                           <button type="button" onClick={() => addInvestmentToCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-teal-200 bg-white px-3 py-1.5 text-teal-700 transition hover:bg-teal-50"><Plus className="h-3.5 w-3.5" />Aggiungi costo</button>
-                          <button type="button" onClick={() => toggleInvestmentCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 transition hover:border-rose-200 hover:text-rose-700">Chiudi tabella</button>
+                          <button type="button" onClick={() => toggleInvestmentCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 transition hover:border-teal-200 hover:text-teal-700">{isTableOpen ? "Nascondi tabella" : "Mostra tabella"}</button>
                         </div>
                       </div>
+                      {isTableOpen ? (
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[1500px] text-left text-xs">
                           <thead className={"text-[11px] uppercase tracking-wide " + theme.thead}>
@@ -3813,6 +3810,7 @@ export default function Home() {
                           </tbody>
                         </table>
                       </div>
+                      ) : null}
                     </div>
                   );
                 })}

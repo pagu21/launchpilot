@@ -125,26 +125,6 @@ body {
     position: relative;
     scrollbar-gutter: stable;
   }
-
-  .overflow-x-auto::before {
-    content: "⇆";
-    position: sticky;
-    left: calc(100% - 2.35rem);
-    top: 0.5rem;
-    z-index: 30;
-    display: inline-grid;
-    place-items: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    margin: 0.45rem 0.45rem -2.2rem auto;
-    border-radius: 9999px;
-    background: rgb(15 118 110 / 0.92);
-    color: #ffffff;
-    font-size: 0.95rem;
-    font-weight: 700;
-    box-shadow: 0 10px 20px rgb(15 23 42 / 0.16);
-    pointer-events: none;
-  }
 }
 
 @media screen {
