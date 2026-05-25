@@ -101,7 +101,7 @@ type AiAlertTone = "green" | "yellow" | "red";
 type AiPriority = "Alta" | "Media" | "Bassa";
 type AiChatMessage = { role: "user" | "assistant"; text: string };
 type UserProfileMode = "cliente" | "consulente" | "master";
-type RevenueChannelKey = "ordinary" | "banquetingIn" | "banquetingOut" | "delivery" | "takeaway";
+type RevenueChannelKey = string;
 type BusinessPlanAudience = "banca" | "investitore" | "consulente" | "franchisor";
 type QuickSize = "piccolo" | "medio" | "grande";
 type QuickPrice = "economico" | "medio" | "premium";
@@ -199,11 +199,12 @@ type WorkflowCostRow = {
 
 type VenueProfile = {
   city: string;
+  postalCode: string;
   zone: string;
   address: string;
   squareMeters: number;
   footTraffic: string;
-  target: "Residenti" | "Uffici" | "Turisti" | "Famiglie" | "Giovani" | "Business";
+  target: string;
   cuisineType: string;
   restaurantFormat: string;
   openingMode: "Annuale" | "Stagionale";
@@ -233,7 +234,6 @@ type VenueRoom = {
 
 type WorkflowCostPreset = Omit<WorkflowCostRow, "id" | "stepIndex" | "enabled" | "custom">;
 
-const cuisineTypePresets = ["Italiana tradizionale", "Pizzeria", "Bistrot", "Pesce", "Carne / steakhouse", "Sushi / fusion", "Vegetariana / healthy", "Fine dining", "Fast casual", "Bar tavola fredda", "Street food", "Cucina regionale"];
 const restaurantFormatPresets = ["Ristorante tradizionale", "Pizzeria", "Bistrot", "Trattoria", "Delivery + sala", "Take away", "Bar con cucina", "Locale stagionale"];
 const zonePresets = ["Centro storico", "Zona turistica", "Zona uffici", "Quartiere residenziale", "Zona universitaria", "Centro commerciale", "Lungomare / area stagionale", "Periferia servita"];
 const serviceBandDefinitions: { key: ServiceBandKey; label: string; hours: number }[] = [
@@ -243,8 +243,26 @@ const serviceBandDefinitions: { key: ServiceBandKey; label: string; hours: numbe
   { key: "dinner", label: "Cena", hours: 3.5 },
 ];
 const roomSeasonPresets: VenueRoom["season"][] = ["Tutto l'anno", "Estate", "Inverno"];
-const footTrafficPresets = ["Limitato", "Discreto", "Buono", "Molto alto", "Molto alto turistico", "Forte presenza uffici", "Prevalentemente serale"];
-const targetPresets: VenueProfile["target"][] = ["Residenti", "Uffici", "Turisti", "Famiglie", "Giovani", "Business"];
+const footTrafficPresets = ["Basso", "Medio", "Alto", "Molto alto"];
+const targetPresets = ["Residenti", "Uffici", "Turisti", "Famiglie", "Giovani", "Business", "Clientela premium", "Studenti", "Hotel e turismo", "Lavoratori pranzo"];
+const additionalRevenueChannelPresets = [
+  "Pranzo business",
+  "Take away / Asporto",
+  "Eventi privati",
+  "Eventi aziendali",
+  "Catering",
+  "Banqueting",
+  "Feste e cerimonie",
+  "Matrimoni",
+  "Coffee break aziendali",
+  "Vendita prodotti propri",
+  "Dark kitchen",
+  "Food truck",
+  "Temporary restaurant / Pop-up",
+  "Brunch",
+  "Vendita tramite hotel",
+  "Vendita tramite stabilimenti balneari",
+];
 const weeklyClosingDays = ["Nessuno", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 const closingDayIndex: Record<string, number> = { "Domenica": 0, "Lunedì": 1, "Martedì": 2, "Mercoledì": 3, "Giovedì": 4, "Venerdì": 5, "Sabato": 6 };
 
@@ -765,6 +783,7 @@ export default function Home() {
   const [quickSize, setQuickSize] = useState<QuickSize>("medio");
   const [quickPrice, setQuickPrice] = useState<QuickPrice>("medio");
   const [quickFormat, setQuickFormat] = useState("Ristorante tradizionale");
+  const [newRevenueChannelLabel, setNewRevenueChannelLabel] = useState(additionalRevenueChannelPresets[0]);
   const [mainServiceBand, setMainServiceBand] = useState<ServiceBandKey>("lunch");
   const [businessPlanQuestion, setBusinessPlanQuestion] = useState("");
   const [businessPlanChatMessages, setBusinessPlanChatMessages] = useState<AiChatMessage[]>([
@@ -799,6 +818,7 @@ export default function Home() {
   const [confirmedSteps, setConfirmedSteps] = useState<Record<number, boolean>>({});
   const [venueProfile, setVenueProfile] = useState<VenueProfile>({
     city: "Milano",
+    postalCode: "20121",
     zone: "Centro / alta visibilità",
     address: "Zona centrale",
     squareMeters: 145,
@@ -975,7 +995,7 @@ export default function Home() {
   const venuePeakSeats = venueRooms.reduce((sum, room) => sum + room.seats, 0);
   const venueActiveRooms = venueRooms.filter((room) => room.seats > 0).length;
   const footTrafficSignal = venueProfile.footTraffic.toLowerCase();
-  const footTrafficScore = footTrafficSignal.includes("molto") ? 96 : footTrafficSignal.includes("buono") || footTrafficSignal.includes("alto") || footTrafficSignal.includes("uffici") ? 82 : footTrafficSignal.includes("discreto") || footTrafficSignal.includes("serale") ? 58 : 34;
+  const footTrafficScore = footTrafficSignal.includes("molto") ? 96 : footTrafficSignal.includes("alto") || footTrafficSignal.includes("buono") || footTrafficSignal.includes("uffici") ? 82 : footTrafficSignal.includes("medio") || footTrafficSignal.includes("discreto") || footTrafficSignal.includes("serale") ? 58 : 34;
   const sqmPerSeat = venuePeakSeats ? venueProfile.squareMeters / venuePeakSeats : 0;
   const spaceEfficiencyScore = sqmPerSeat >= 1.4 && sqmPerSeat <= 3.4 ? 82 : sqmPerSeat > 0 && sqmPerSeat < 1.2 ? 46 : 62;
   const targetFormatScore =
@@ -1667,6 +1687,11 @@ export default function Home() {
     consulente: { label: "Commercialista / consulente", focus: "Fattibilità economica, criticità, rischi, margini e giudizio professionale.", className: "bg-slate-800 text-white ring-slate-800" },
     franchisor: { label: "Versione franchisor", focus: "Replicabilità, standardizzazione, potenziale rete e controllo operativo.", className: "bg-sky-600 text-white ring-sky-600" },
   };
+  const availableBusinessPlanAudiences: BusinessPlanAudience[] = userProfileMode === "cliente"
+    ? ["banca"]
+    : userProfileMode === "consulente"
+      ? ["consulente", "banca", "investitore"]
+      : ["consulente", "banca", "investitore", "franchisor"];
   const selectedBusinessPlanAudience = businessPlanAudienceCopy[businessPlanAudience];
   const investmentToRevenuePct = kpis.revenueAnnual ? (investmentTotal / kpis.revenueAnnual) * 100 : 0;
   const ownCapitalCoveragePct = investmentTotal ? ((ownCapital + confirmedGrants) / investmentTotal) * 100 : 0;
@@ -2338,6 +2363,26 @@ export default function Home() {
 
   function updateRevenueChannel(key: RevenueChannelKey, field: keyof Omit<RevenueChannel, "key">, value: string | number | boolean) {
     setRevenueChannels((current) => current.map((channel) => (channel.key === key ? { ...channel, [field]: value } : channel)));
+  }
+
+  function addRevenueChannel(label = newRevenueChannelLabel) {
+    markStepDirty(7);
+    const cleanLabel = label.trim() || "Nuovo canale";
+    setRevenueChannels((current) => [
+      ...current,
+      {
+        key: "custom-" + Date.now(),
+        enabled: true,
+        label: cleanLabel,
+        monthlyOrders: 80,
+        averageRevenue: 35,
+        minMarginPerPerson: 14,
+        platform: cleanLabel,
+        deliveryCostPerOrder: cleanLabel.toLowerCase().includes("delivery") || cleanLabel.toLowerCase().includes("catering") ? 6 : 0,
+        otherCostPerOrder: 14,
+        note: "Canale aggiunto dal cliente. Valori prudenziali modificabili.",
+      },
+    ]);
   }
 
   function updateRevenueScenario(
@@ -3428,13 +3473,14 @@ export default function Home() {
               <div className="mb-5 grid gap-4 rounded-lg border border-teal-100 bg-teal-50/60 p-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <label className="text-sm font-medium text-slate-700">Città<input value={venueProfile.city} onChange={(event) => updateVenueProfile("city", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
+                  <label className="text-sm font-medium text-slate-700">CAP<input inputMode="numeric" maxLength={5} value={venueProfile.postalCode} onChange={(event) => updateVenueProfile("postalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="Es. 20121" className={"mt-1 w-full rounded-md border bg-white px-3 py-2 outline-none transition focus:border-teal-500 " + (/^\d{5}$/.test(venueProfile.postalCode) ? "border-slate-200" : "border-amber-300")} /><span className="mt-1 block text-xs leading-5 text-slate-500">{/^\d{5}$/.test(venueProfile.postalCode) ? "CAP formalmente corretto." : "Inserisci 5 cifre per un controllo base."}</span></label>
                   <label className="text-sm font-medium text-slate-700">Zona<input list="zone-presets" value={venueProfile.zone} onChange={(event) => updateVenueProfile("zone", event.target.value)} placeholder="Es. centro storico, zona uffici, quartiere residenziale..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="zone-presets">{zonePresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un valore preimpostato o scrivi liberamente la zona reale.</span></label>
                   <label className="text-sm font-medium text-slate-700">Indirizzo / riferimento<input value={venueProfile.address} onChange={(event) => updateVenueProfile("address", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
                   <label className="text-sm font-medium text-slate-700">Mq locale<input type="number" min="1" value={venueProfile.squareMeters} onChange={(event) => updateVenueProfile("squareMeters", Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-right outline-none transition focus:border-teal-500" /></label>
-                  <label className="text-sm font-medium text-slate-700">Flusso clienti potenziale<input list="foot-traffic-presets" value={venueProfile.footTraffic} onChange={(event) => updateVenueProfile("footTraffic", event.target.value)} placeholder="Es. buono, prevalentemente serale, forte presenza uffici..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="foot-traffic-presets">{footTrafficPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Indica quante persone passano o possono essere intercettate dalla location.</span></label>
-                  <label className="text-sm font-medium text-slate-700">Target prevalente<select value={venueProfile.target} onChange={(event) => updateVenueProfile("target", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{targetPresets.map((preset) => <option key={preset}>{preset}</option>)}</select></label>
-                  <label className="text-sm font-medium text-slate-700">Cucina<input list="cuisine-type-presets" value={venueProfile.cuisineType} onChange={(event) => updateVenueProfile("cuisineType", event.target.value)} placeholder="Es. cucina romana, pesce, pizzeria gourmet..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="cuisine-type-presets">{cuisineTypePresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un preset o scrivi liberamente la cucina reale del locale.</span></label>
-                  <label className="text-sm font-medium text-slate-700">Format locale<input list="restaurant-format-presets" value={venueProfile.restaurantFormat} onChange={(event) => updateVenueProfile("restaurantFormat", event.target.value)} placeholder="Es. osteria moderna, pizzeria gourmet, bar pranzo veloce..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="restaurant-format-presets">{restaurantFormatPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un suggerimento o scrivi liberamente il format: verrà usato in analisi, scenari e report.</span></label>
+                  <label className="text-sm font-medium text-slate-700">Passaggio clienti<input list="foot-traffic-presets" value={venueProfile.footTraffic} onChange={(event) => updateVenueProfile("footTraffic", event.target.value)} placeholder="Basso, medio, alto..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="foot-traffic-presets">{footTrafficPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Stima prudenziale del passaggio o della domanda intercettabile.</span></label>
+                  <label className="text-sm font-medium text-slate-700">Target prevalente<input list="target-presets" value={venueProfile.target} onChange={(event) => updateVenueProfile("target", event.target.value)} placeholder="Es. business, famiglie, turisti..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="target-presets">{targetPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un preset o scrivi un target personalizzato.</span></label>
+                  <label className="text-sm font-medium text-slate-700">Cucina<input value={venueProfile.cuisineType} onChange={(event) => updateVenueProfile("cuisineType", event.target.value)} placeholder="Es. cucina romana, pesce, pizzeria gourmet..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><span className="mt-1 block text-xs leading-5 text-slate-500">Campo libero: scrivi la cucina reale del locale.</span></label>
+                  <label className="text-sm font-medium text-slate-700">Forma / format locale<input list="restaurant-format-presets" value={venueProfile.restaurantFormat} onChange={(event) => updateVenueProfile("restaurantFormat", event.target.value)} placeholder="Es. osteria moderna, pizzeria gourmet, bar pranzo veloce..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="restaurant-format-presets">{restaurantFormatPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un suggerimento o scrivi liberamente il format: verrà usato in analisi, scenari e report.</span></label>
                   <label className="text-sm font-medium text-slate-700">Tipo apertura<select value={venueProfile.openingMode} onChange={(event) => updateVenueProfile("openingMode", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500"><option>Annuale</option><option>Stagionale</option></select></label><label className="text-sm font-medium text-slate-700">Chiusura settimanale<select value={venueProfile.weeklyClosingDay} onChange={(event) => updateVenueProfile("weeklyClosingDay", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{weeklyClosingDays.map((day) => <option key={day}>{day}</option>)}</select></label>{venueProfile.openingMode === "Stagionale" ? (<><label className="text-sm font-medium text-slate-700">Inizio stagione<input type="date" value={venueProfile.seasonStartDate} onChange={(event) => updateVenueProfile("seasonStartDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700">Fine stagione<input type="date" value={venueProfile.seasonEndDate} onChange={(event) => updateVenueProfile("seasonEndDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label></>) : null}<div className="rounded-md bg-teal-50 p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Giorni apertura calcolati</p><p className="mt-1 lp-card-value-sm text-teal-950">{effectiveOpeningDaysAnnual}</p><p className="text-xs text-teal-700">Tiene conto di periodo e chiusura settimanale.</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Capienza annua</p><p className="mt-1 lp-card-value-sm text-teal-950">{Math.round(venueAnnualCapacity).toLocaleString("it-IT")}</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Coperti massimi</p><p className="mt-1 lp-card-value-sm text-teal-950">{venuePeakSeats}</p></div>
@@ -3498,6 +3544,25 @@ export default function Home() {
                             </span>
                           </label>
                         ))}
+                      </div>
+                      <div className="mt-4 rounded-lg border border-dashed border-teal-200 bg-teal-50/50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Aggiungi canale</p>
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                          <input
+                            list="additional-revenue-channel-presets"
+                            value={newRevenueChannelLabel}
+                            onChange={(event) => setNewRevenueChannelLabel(event.target.value)}
+                            className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-teal-500"
+                            placeholder="Scegli dalla tendina o scrivi un canale personalizzato"
+                          />
+                          <datalist id="additional-revenue-channel-presets">
+                            {additionalRevenueChannelPresets.map((preset) => <option key={preset} value={preset} />)}
+                          </datalist>
+                          <button type="button" onClick={() => addRevenueChannel()} className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700">
+                            <Plus className="h-4 w-4" />
+                            Aggiungi canale
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3581,7 +3646,7 @@ export default function Home() {
                               <span className={(theme.title + " block truncate text-sm font-semibold")}>{group.category}</span>
                               <span className="mt-1 block text-xs text-slate-500">{confirmedRows} su {group.rows.length} voci selezionate</span>
                             </div>
-                            <span className={"grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ring-1 " + (isVisible ? "bg-teal-50 text-teal-700 ring-teal-100" : "bg-slate-100 text-slate-500 ring-slate-200")}>{isVisible ? "ON" : "OFF"}</span>
+                            <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + (isVisible ? "bg-teal-50 text-teal-700 ring-teal-100" : "bg-slate-100 text-slate-500 ring-slate-200")}>{isVisible ? "Chiudi" : "Apri"}</span>
                           </div>
                           <div className="mt-3 h-2 rounded-full bg-slate-100">
                             <div className="h-2 rounded-full bg-teal-500 transition-all" style={{ width: `${completionPct}%` }} />
@@ -3616,6 +3681,7 @@ export default function Home() {
                           <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 ring-1 ring-slate-200">Categoria {euro.format(group.confirmedTotal)}</span>
                           <span className="rounded-full bg-teal-50 px-3 py-1.5 text-teal-700 ring-1 ring-teal-100">{investmentTotal ? ((group.confirmedTotal / investmentTotal) * 100).toFixed(1) : "0.0"}% del totale</span>
                           <button type="button" onClick={() => addInvestmentToCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-teal-200 bg-white px-3 py-1.5 text-teal-700 transition hover:bg-teal-50"><Plus className="h-3.5 w-3.5" />Aggiungi costo</button>
+                          <button type="button" onClick={() => toggleInvestmentCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 transition hover:border-rose-200 hover:text-rose-700">Chiudi tabella</button>
                         </div>
                       </div>
                       <div className="overflow-x-auto">
@@ -5449,7 +5515,7 @@ export default function Home() {
               </div>
 
               <div className="mt-5 grid gap-3 md:grid-cols-3">
-                {(["banca", "investitore", "consulente"] as BusinessPlanAudience[]).map((audience) => {
+                {availableBusinessPlanAudiences.map((audience) => {
                   const copy = businessPlanAudienceCopy[audience];
                   const selected = businessPlanAudience === audience;
                   return (
