@@ -723,6 +723,67 @@ function KpiCard({
   );
 }
 
+function VenueRoomsEditor({
+  venueRooms,
+  effectiveOpeningDaysAnnual,
+  weeklyClosingDay,
+  onUpdate,
+  onAdd,
+}: {
+  venueRooms: VenueRoom[];
+  effectiveOpeningDaysAnnual: number;
+  weeklyClosingDay: string;
+  onUpdate: (id: string, key: keyof Omit<VenueRoom, "id">, value: string | number | boolean) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-teal-100 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Sale e coperti disponibili</p>
+          <h3 className="mt-1 text-lg font-semibold text-slate-950">Capienza reale del locale</h3>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Inserisci sale interne, dehors o sale stagionali: i giorni vengono calcolati considerando la chiusura settimanale.</p>
+        </div>
+        <button type="button" onClick={onAdd} className="inline-flex w-fit items-center gap-2 rounded-md border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50">
+          <Plus className="h-4 w-4" />
+          Aggiungi sala
+        </button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-teal-100 bg-white">
+        <table className="w-full min-w-[1520px] text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="px-2 py-1.5">Sala</th>
+              <th className="px-2 py-1.5 text-right">Coperti</th>
+              <th className="px-2 py-1.5">Periodo</th>
+              <th className="px-2 py-1.5">Apertura sala</th>
+              <th className="px-2 py-1.5">Chiusura sala</th>
+              <th className="px-2 py-1.5 text-right">Giorni</th>
+              <th className="px-2 py-1.5">Nota</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {venueRooms.map((room) => {
+              const roomDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, weeklyClosingDay);
+              return (
+                <tr key={room.id}>
+                  <td className="px-2 py-1.5"><input value={room.name} onChange={(event) => onUpdate(room.id, "name", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td>
+                  <td className="px-2 py-1.5"><input type="number" min="0" value={room.seats} onChange={(event) => onUpdate(room.id, "seats", Number(event.target.value))} className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-teal-500" /></td>
+                  <td className="px-2 py-1.5"><select value={room.season} onChange={(event) => onUpdate(room.id, "season", event.target.value)} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500">{roomSeasonPresets.map((season) => <option key={season}>{season}</option>)}</select></td>
+                  <td className="px-2 py-1.5"><input type="date" value={room.seasonStartDate} onChange={(event) => onUpdate(room.id, "seasonStartDate", event.target.value)} disabled={room.season === "Tutto l'anno"} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50 disabled:text-slate-400" /></td>
+                  <td className="px-2 py-1.5"><input type="date" value={room.seasonEndDate} onChange={(event) => onUpdate(room.id, "seasonEndDate", event.target.value)} disabled={room.season === "Tutto l'anno"} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50 disabled:text-slate-400" /></td>
+                  <td className="px-2 py-1.5 text-right font-semibold text-slate-950">{roomDays}</td>
+                  <td className="px-2 py-1.5"><input value={room.note} onChange={(event) => onUpdate(room.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function ChartShell() {
   return (
     <div className="grid h-full min-h-[220px] place-items-center rounded-md bg-slate-100 text-sm font-medium text-slate-400">
@@ -3486,6 +3547,13 @@ export default function Home() {
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Coperti massimi</p><p className="mt-1 lp-card-value-sm text-teal-950">{venuePeakSeats}</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Sale attive</p><p className="mt-1 lp-card-value-sm text-teal-950">{venueActiveRooms}</p></div>
                 </div>
+                <VenueRoomsEditor
+                  venueRooms={venueRooms}
+                  effectiveOpeningDaysAnnual={effectiveOpeningDaysAnnual}
+                  weeklyClosingDay={venueProfile.weeklyClosingDay}
+                  onUpdate={updateVenueRoom}
+                  onAdd={addVenueRoom}
+                />
                 <div className="rounded-lg border border-teal-100 bg-white p-4">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Modulo analisi location</p><h3 className="mt-1 text-lg font-semibold text-slate-950">Potenziale commerciale del locale</h3></div>
@@ -3567,8 +3635,6 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                <div className="overflow-x-auto rounded-lg border border-teal-100 bg-white"><table className="w-full min-w-[1520px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-2 py-1.5">Sala</th><th className="px-2 py-1.5 text-right">Coperti</th><th className="px-2 py-1.5">Periodo</th><th className="px-2 py-1.5">Apertura sala</th><th className="px-2 py-1.5">Chiusura sala</th><th className="px-2 py-1.5 text-right">Giorni</th><th className="px-2 py-1.5">Nota</th></tr></thead><tbody className="divide-y divide-slate-100">{venueRooms.map((room) => { const roomDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, venueProfile.weeklyClosingDay); return (<tr key={room.id}><td className="px-2 py-1.5"><input value={room.name} onChange={(event) => updateVenueRoom(room.id, "name", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><input type="number" min="0" value={room.seats} onChange={(event) => updateVenueRoom(room.id, "seats", Number(event.target.value))} className="w-24 rounded-md border border-slate-200 px-2 py-1.5 text-right outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><select value={room.season} onChange={(event) => updateVenueRoom(room.id, "season", event.target.value)} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500">{roomSeasonPresets.map((season) => <option key={season}>{season}</option>)}</select></td><td className="px-2 py-1.5"><input type="date" value={room.seasonStartDate} onChange={(event) => updateVenueRoom(room.id, "seasonStartDate", event.target.value)} disabled={room.season === "Tutto l'anno"} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50 disabled:text-slate-400" /></td><td className="px-2 py-1.5"><input type="date" value={room.seasonEndDate} onChange={(event) => updateVenueRoom(room.id, "seasonEndDate", event.target.value)} disabled={room.season === "Tutto l'anno"} className="rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500 disabled:bg-slate-50 disabled:text-slate-400" /></td><td className="px-2 py-1.5 text-right font-semibold text-slate-950">{roomDays}</td><td className="px-2 py-1.5"><input value={room.note} onChange={(event) => updateVenueRoom(room.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td></tr>); })}</tbody></table></div>
-                <button type="button" onClick={addVenueRoom} className="inline-flex w-fit items-center gap-2 rounded-md border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"><Plus className="h-4 w-4" />Aggiungi sala</button>
               </div>
             ) : null}
             {activeStep === 1 ? (
