@@ -272,10 +272,6 @@ body {
     background: #f1f5f9;
   }
 
-  .overflow-x-auto::before {
-    display: none !important;
-  }
-
   .no-print {
     display: none !important;
   }

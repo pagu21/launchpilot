@@ -852,6 +852,7 @@ export default function Home() {
   ]);
   const [investmentPrintMode, setInvestmentPrintMode] = useState<"selected" | "all">("all");
   const [visibleInvestmentCategories, setVisibleInvestmentCategories] = useState<Record<string, boolean>>({});
+  const [visibleWorkflowCostCategories, setVisibleWorkflowCostCategories] = useState<Record<string, boolean>>({});
   const [expandedAiAlertId, setExpandedAiAlertId] = useState<string | null>(null);
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiChatMessages, setAiChatMessages] = useState<AiChatMessage[]>([
@@ -2351,6 +2352,42 @@ export default function Home() {
     );
   }
 
+  function getWorkflowCostCategoryKey(stepIndex: number, category: string) {
+    return `${stepIndex}-${category}`;
+  }
+
+  function isWorkflowCostCategoryOpen(stepIndex: number, category: string) {
+    return visibleWorkflowCostCategories[getWorkflowCostCategoryKey(stepIndex, category)] !== false;
+  }
+
+  function toggleWorkflowCostCategory(stepIndex: number, category: string) {
+    const key = getWorkflowCostCategoryKey(stepIndex, category);
+    setVisibleWorkflowCostCategories((current) => ({
+      ...current,
+      [key]: current[key] === false,
+    }));
+  }
+
+  function showAllWorkflowCostCategories(groups: { category: string }[], stepIndex = activeStep) {
+    setVisibleWorkflowCostCategories((current) => {
+      const next = { ...current };
+      groups.forEach((group) => {
+        next[getWorkflowCostCategoryKey(stepIndex, group.category)] = true;
+      });
+      return next;
+    });
+  }
+
+  function hideUnselectedWorkflowCostCategories(groups: { category: string; rows: WorkflowCostRow[] }[], stepIndex = activeStep) {
+    setVisibleWorkflowCostCategories((current) => {
+      const next = { ...current };
+      groups.forEach((group) => {
+        next[getWorkflowCostCategoryKey(stepIndex, group.category)] = group.rows.some((row) => row.enabled);
+      });
+      return next;
+    });
+  }
+
   function showInvestmentPreview(mode: "selected" | "all") {
     setInvestmentPrintMode(mode);
     window.setTimeout(() => {
@@ -2761,7 +2798,7 @@ export default function Home() {
               className="h-12 w-auto object-contain sm:h-14"
             />
           </div>
-          <nav className="hidden h-14 max-w-[620px] items-center gap-1 overflow-x-auto overflow-y-hidden rounded-md bg-slate-100 p-1 xl:flex">
+          <nav className="hidden h-14 max-w-[620px] items-center gap-1 overflow-hidden rounded-md bg-slate-100 p-1 xl:flex">
             {visibleAppPages.map((page) => (
               <button
                 key={page.id}
@@ -3866,12 +3903,37 @@ export default function Home() {
                   <div className="rounded-lg bg-white p-4 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">FC a consuntivo</p><p className="lp-card-value-sm mt-1">{foodCostActualPct.toFixed(1)}%</p></div>
                   <div className="rounded-lg bg-white p-4 ring-1 ring-emerald-200"><p className="text-xs font-semibold uppercase text-emerald-600">FC ideale</p><p className="lp-card-value-sm mt-1">{foodCostIdealPct.toFixed(1)}%</p></div>
                 </div>
-                {variableWorkflowGroups.map((group) => (
-                  <div key={group.category} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-emerald-50 px-4 py-3"><div><h3 className="font-semibold text-emerald-950">{group.category}</h3><p className="text-sm text-emerald-700">Spunta le voci da includere, modifica importi e note. Le voci non selezionate restano come promemoria.</p></div><div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => addWorkflowCost(group.category)} className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"><Plus className="h-3.5 w-3.5" />Aggiungi voce</button><span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Totale {euro.format(group.total)}</span></div></div>
-                    <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">Tabelle costi per categoria</p>
+                    <p className="text-xs text-slate-500">Le categorie restano sempre visibili. Apri solo la tabella che vuoi compilare.</p>
                   </div>
-                ))}
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => showAllWorkflowCostCategories(variableWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">Apri tutte</button>
+                    <button type="button" onClick={() => hideUnselectedWorkflowCostCategories(variableWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">Apri solo scelte</button>
+                  </div>
+                </div>
+                {variableWorkflowGroups.map((group) => {
+                  const isTableOpen = isWorkflowCostCategoryOpen(activeStep, group.category);
+                  return (
+                    <div key={group.category} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-emerald-50 px-4 py-3">
+                        <div>
+                          <h3 className="font-semibold text-emerald-950">{group.category}</h3>
+                          <p className="text-sm text-emerald-700">Spunta le voci da includere, modifica importi e note. Le voci non selezionate restano come promemoria.</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button type="button" onClick={() => toggleWorkflowCostCategory(activeStep, group.category)} className="rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50">{isTableOpen ? "Nascondi tabella" : "Mostra tabella"}</button>
+                          <button type="button" onClick={() => addWorkflowCost(group.category)} className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"><Plus className="h-3.5 w-3.5" />Aggiungi voce</button>
+                          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Totale {euro.format(group.total)}</span>
+                        </div>
+                      </div>
+                      {isTableOpen ? (
+                        <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             ) : activeStep === 3 ? (
               <div className="grid gap-5">
@@ -3880,12 +3942,37 @@ export default function Home() {
                   <p className="mt-1 text-sm leading-6 text-slate-600">Spunta solo le persone che pensi di utilizzare. Gli importi sono costi mensili azienda indicativi da contratti nazionali e pratica di mercato: il cliente può modificarli sempre.</p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-3"><div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Ruoli scelti</p><p className="lp-card-value-sm mt-1">{activeWorkflowSelected}</p></div><div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Costo mese</p><p className="lp-card-value-sm mt-1">{euro.format(activeWorkflowTotal)}</p></div><div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Costo anno stimato</p><p className="lp-card-value-sm mt-1">{euro.format(activeWorkflowTotal * 12)}</p></div></div>
                 </div>
-                {personnelWorkflowGroups.map((group) => (
-                  <div key={group.category} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-sky-50 px-4 py-3"><div><h3 className="font-semibold text-sky-950">{group.category}</h3><p className="text-sm text-sky-700">Conferma i ruoli utili e modifica costo mensile e descrizione.</p></div><div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => addWorkflowCost(group.category)} className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"><Plus className="h-3.5 w-3.5" />Aggiungi voce</button><span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Totale {euro.format(group.total)}</span></div></div>
-                    <div className="overflow-x-auto"><table className="w-full min-w-[1040px] text-left text-sm"><thead className="bg-sky-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Ruolo</th><th className="px-2 py-1.5 text-right">Costo mese</th><th className="px-2 py-1.5">Periodo</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-teal-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={(row.category.includes("Stagionale") ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-100 text-slate-700 ring-slate-200") + " rounded-full px-2.5 py-1 text-xs font-semibold ring-1"}>{row.category.includes("Stagionale") ? "Stagionale / extra" : "Continuativo"}</span></td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">Tabelle personale per categoria</p>
+                    <p className="text-xs text-slate-500">Apri una categoria alla volta se vuoi lavorare in modo più ordinato.</p>
                   </div>
-                ))}
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => showAllWorkflowCostCategories(personnelWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700">Apri tutte</button>
+                    <button type="button" onClick={() => hideUnselectedWorkflowCostCategories(personnelWorkflowGroups, activeStep)} className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-200 hover:text-sky-700">Apri solo scelte</button>
+                  </div>
+                </div>
+                {personnelWorkflowGroups.map((group) => {
+                  const isTableOpen = isWorkflowCostCategoryOpen(activeStep, group.category);
+                  return (
+                    <div key={group.category} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-sky-50 px-4 py-3">
+                        <div>
+                          <h3 className="font-semibold text-sky-950">{group.category}</h3>
+                          <p className="text-sm text-sky-700">Conferma i ruoli utili e modifica costo mensile e descrizione.</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button type="button" onClick={() => toggleWorkflowCostCategory(activeStep, group.category)} className="rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50">{isTableOpen ? "Nascondi tabella" : "Mostra tabella"}</button>
+                          <button type="button" onClick={() => addWorkflowCost(group.category)} className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"><Plus className="h-3.5 w-3.5" />Aggiungi voce</button>
+                          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Totale {euro.format(group.total)}</span>
+                        </div>
+                      </div>
+                      {isTableOpen ? (
+                        <div className="overflow-x-auto"><table className="w-full min-w-[1040px] text-left text-sm"><thead className="bg-sky-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Ruolo</th><th className="px-2 py-1.5 text-right">Costo mese</th><th className="px-2 py-1.5">Periodo</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-teal-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={(row.category.includes("Stagionale") ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-100 text-slate-700 ring-slate-200") + " rounded-full px-2.5 py-1 text-xs font-semibold ring-1"}>{row.category.includes("Stagionale") ? "Stagionale / extra" : "Continuativo"}</span></td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             ) : activeStep === 7 ? (
               <div className="grid gap-5">
