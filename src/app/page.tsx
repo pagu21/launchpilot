@@ -3714,7 +3714,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="sticky top-[76px] z-10 rounded-lg border border-teal-100 bg-white/95 p-3 shadow-sm backdrop-blur no-print">
+                <div className="rounded-lg border border-teal-100 bg-white/95 p-3 shadow-sm backdrop-blur no-print md:sticky md:top-[76px] md:z-10">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold leading-tight text-slate-950">Categorie<br />costi</p>
@@ -3746,7 +3746,7 @@ export default function Home() {
                               <span className={(theme.title + " block truncate text-sm font-semibold")}>{group.category}</span>
                               <span className="mt-1 block text-xs text-slate-500">{confirmedRows} su {group.rows.length} voci selezionate</span>
                             </div>
-                            <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + (isVisible ? "bg-teal-50 text-teal-700 ring-teal-100" : "bg-slate-100 text-slate-500 ring-slate-200")}>{isVisible ? "Aperta" : "Chiusa"}</span>
+                            <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + (isVisible ? "bg-teal-50 text-teal-700 ring-teal-100" : "bg-slate-100 text-slate-500 ring-slate-200")}>{isVisible ? "Chiudi tabella" : "Apri tabella"}</span>
                           </div>
                           <div className="mt-3 h-2 rounded-full bg-slate-100">
                             <div className="h-2 rounded-full bg-teal-500 transition-all" style={{ width: `${completionPct}%` }} />
@@ -3776,17 +3776,72 @@ export default function Home() {
                           <span className="rounded-full bg-white px-3 py-1.5 text-slate-700 ring-1 ring-slate-200">Categoria {euro.format(group.confirmedTotal)}</span>
                           <span className="rounded-full bg-teal-50 px-3 py-1.5 text-teal-700 ring-1 ring-teal-100">{investmentTotal ? ((group.confirmedTotal / investmentTotal) * 100).toFixed(1) : "0.0"}% del totale</span>
                           <button type="button" onClick={() => addInvestmentToCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-teal-200 bg-white px-3 py-1.5 text-teal-700 transition hover:bg-teal-50"><Plus className="h-3.5 w-3.5" />Aggiungi costo</button>
-                          <button type="button" onClick={() => toggleInvestmentCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 transition hover:border-teal-200 hover:text-teal-700">{isTableOpen ? "Nascondi tabella" : "Mostra tabella"}</button>
+                          <button type="button" onClick={() => toggleInvestmentCategory(group.category)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-slate-700 transition hover:border-teal-200 hover:text-teal-700">{isTableOpen ? "Chiudi tabella" : "Apri tabella"}</button>
                         </div>
                       </div>
                       {isTableOpen ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1500px] text-left text-xs">
+                      <>
+                      <div className="grid gap-3 p-3 md:hidden">
+                        {group.rows.map(({ item, index, total }) => {
+                          const categoryPct = categoryTotalAll ? (total / categoryTotalAll) * 100 : 0;
+                          const totalPct = investmentTotal && item.confirmed ? (total / investmentTotal) * 100 : 0;
+                          return (
+                            <div key={index} className={(item.confirmed ? "bg-white" : "bg-slate-50") + " rounded-lg border border-slate-200 p-3 shadow-sm"}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex flex-wrap gap-2">
+                                  <label className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                    <input type="checkbox" checked={item.confirmed} onChange={(event) => updateInvestment(index, "confirmed", event.target.checked)} className="h-4 w-4 accent-teal-600" />
+                                    Usa
+                                  </label>
+                                  <label className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                    <input type="checkbox" checked={item.amortizable} onChange={(event) => updateInvestment(index, "amortizable", event.target.checked)} className="h-4 w-4 accent-teal-600" />
+                                    Ammortizza
+                                  </label>
+                                </div>
+                                <button type="button" onClick={() => deleteInvestment(index)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button>
+                              </div>
+                              <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                Voce
+                                <input value={item.description} onChange={(event) => updateInvestment(index, "description", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none focus:border-teal-500" />
+                              </label>
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  Quantità
+                                  <input type="number" min="0" value={item.quantity} onChange={(event) => updateInvestment(index, "quantity", Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-2 text-right text-sm font-medium normal-case tracking-normal text-slate-950 outline-none focus:border-teal-500" />
+                                </label>
+                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  Prezzo netto
+                                  <MoneyInput value={item.unitPrice} onChange={(value) => updateInvestment(index, "unitPrice", value)} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-right text-sm font-medium normal-case tracking-normal text-slate-950 outline-none focus:border-teal-500" />
+                                </label>
+                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  IVA
+                                  <select value={item.vat} onChange={(event) => updateInvestment(index, "vat", Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none focus:border-teal-500">{[0, 4, 10, 22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select>
+                                </label>
+                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500" title="Ammortamento lineare: costo distribuito negli anni. Valore base: 5 anni.">
+                                  Ammortamento
+                                  <input type="number" min="1" value={item.years} onChange={(event) => updateInvestment(index, "years", Number(event.target.value))} className="mt-1 w-full rounded-md border border-slate-200 px-2 py-2 text-right text-sm font-medium normal-case tracking-normal text-slate-950 outline-none focus:border-teal-500" />
+                                </label>
+                              </div>
+                              <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                                <div className="rounded-md bg-slate-50 p-2 ring-1 ring-slate-200"><span className="block text-slate-500">Totale</span><strong className="text-slate-950">{euro.format(total)}</strong></div>
+                                <div className="rounded-md bg-slate-50 p-2 ring-1 ring-slate-200"><span className="block text-slate-500">% categoria</span><strong className="text-slate-950">{categoryPct.toFixed(1)}%</strong></div>
+                                <div className="rounded-md bg-slate-50 p-2 ring-1 ring-slate-200"><span className="block text-slate-500">% totale</span><strong className="text-slate-950">{totalPct.toFixed(1)}%</strong></div>
+                              </div>
+                              <div className="mt-3 flex gap-2">
+                                <button type="button" onClick={() => moveInvestment(index, -1)} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">Su</button>
+                                <button type="button" onClick={() => moveInvestment(index, 1)} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">Giù</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="hidden overflow-x-auto md:block">
+                        <table className="w-full min-w-[1180px] text-left text-xs">
                           <thead className={"text-[11px] uppercase tracking-wide " + theme.thead}>
                             <tr>
                               <th className="px-2 py-1.5" title="Spunta questa voce solo se vuoi inserirla nei costi del progetto.">Conferma</th>
                               <th className="px-2 py-1.5" title="Spunta solo se il bene deve essere distribuito negli anni come costo economico.">Ammortizza</th>
-                              <th className="w-[460px] px-2 py-1.5" title="Nome del costo. Scrivi parole normali e concrete: es. forno, sedie, insegna, frigo. Deve essere chiaro anche a chi non conosce la contabilità.">Voce</th>
+                              <th className="w-[360px] px-2 py-1.5" title="Nome del costo. Scrivi parole normali e concrete: es. forno, sedie, insegna, frigo. Deve essere chiaro anche a chi non conosce la contabilità.">Voce</th>
                               <th className="px-2 py-1.5 text-right" title="Quanti pezzi o quante unità servono.">Quantità</th>
                               <th className="px-2 py-1.5 text-right" title="Prezzo senza IVA. Scrivi sempre con virgola e due decimali, esempio 1.250,00.">Prezzo netto</th>
                               <th className="px-2 py-1.5 text-right" title="Quantità moltiplicata per prezzo netto.">Totale</th>
@@ -3812,7 +3867,7 @@ export default function Home() {
                                   </td>
                                   <td className="px-2 py-1.5 align-top"><label className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"><input type="checkbox" checked={item.amortizable} onChange={(event) => updateInvestment(index, "amortizable", event.target.checked)} className="h-4 w-4 accent-teal-600" />Sì</label></td>
                                   <td className="px-2 py-1.5 align-top">
-                                    <input value={item.description} onChange={(event) => updateInvestment(index, "description", event.target.value)} className="w-[460px] rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-950 outline-none focus:border-teal-500" />
+                                    <input value={item.description} onChange={(event) => updateInvestment(index, "description", event.target.value)} className="w-[360px] rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-950 outline-none focus:border-teal-500" />
                                   </td>
                                   <td className="px-2 py-1.5 align-top"><input type="number" min="0" value={item.quantity} onChange={(event) => updateInvestment(index, "quantity", Number(event.target.value))} className="w-16 rounded-md border border-slate-200 px-2 py-1 text-right text-xs outline-none focus:border-teal-500" /></td>
                                   <td className="px-2 py-1.5 align-top"><MoneyInput value={item.unitPrice} onChange={(value) => updateInvestment(index, "unitPrice", value)} className="w-28 rounded-md border border-slate-200 px-2 py-1 text-right text-xs outline-none focus:border-teal-500" /></td>
@@ -3843,6 +3898,7 @@ export default function Home() {
                           </tbody>
                         </table>
                       </div>
+                      </>
                       ) : null}
                     </div>
                   );
@@ -3888,7 +3944,7 @@ export default function Home() {
               <div className="grid gap-5">
                 <div className="grid gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 p-4 md:grid-cols-4">
                   <div className="rounded-md bg-white p-3 ring-1 ring-emerald-100"><p className="text-xs font-semibold uppercase text-emerald-600">Costi variabili</p><p className="lp-card-value-sm mt-1">{euro.format(selectedVariableGeneralTotal)}</p><p className="text-xs text-emerald-700">Energia, gas, POS, delivery e servizi.</p></div>
-                  <div className="rounded-md bg-white p-3 ring-1 ring-emerald-100"><p className="text-xs font-semibold uppercase text-emerald-600">Food cost minimo</p><p className="lp-card-value-sm mt-1">{euro.format(selectedFoodCostTotal)}</p><p className="text-xs text-emerald-700">Magazzino food selezionato.</p></div>
+                  <div className="rounded-md bg-white p-3 ring-1 ring-emerald-100"><p className="text-xs font-semibold uppercase text-emerald-600">Food selezionato</p><p className="lp-card-value-sm mt-1">{euro.format(selectedFoodCostTotal)}</p><p className="text-xs text-emerald-700">Voci food confermate.</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-emerald-100"><p className="text-xs font-semibold uppercase text-emerald-600">Beverage</p><p className="lp-card-value-sm mt-1">{euro.format(selectedBeverageTotal)}</p><p className="text-xs text-emerald-700">{beverageOnAllSelectedCostsPct.toFixed(1)}% dei costi, {beverageCostActualPct.toFixed(1)}% del fatturato.</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-amber-100"><p className="text-xs font-semibold uppercase text-amber-600">Food + beverage / fatturato</p><p className="lp-card-value-sm mt-1">{foodBeverageRevenuePct.toFixed(1)}%</p><p className="text-xs text-amber-700">Sul fatturato mensile stimato.</p></div>
                 </div>
@@ -3913,13 +3969,43 @@ export default function Home() {
                           <p className="text-sm text-emerald-700">Spunta le voci da includere, modifica importi e note. Le voci non selezionate restano come promemoria.</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <button type="button" onClick={() => toggleWorkflowCostCategory(activeStep, group.category)} className="rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50">{isTableOpen ? "Nascondi tabella" : "Mostra tabella"}</button>
+                          <button type="button" onClick={() => toggleWorkflowCostCategory(activeStep, group.category)} className="rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50">{isTableOpen ? "Chiudi tabella" : "Apri tabella"}</button>
                           <button type="button" onClick={() => addWorkflowCost(group.category)} className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"><Plus className="h-3.5 w-3.5" />Aggiungi voce</button>
                           <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Totale {euro.format(group.total)}</span>
                         </div>
                       </div>
                       {isTableOpen ? (
-                        <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                        <>
+                          <div className="grid gap-3 p-3 md:hidden">
+                            {group.rows.map((row) => {
+                              const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label);
+                              const kindCopy = workflowCostKindCopy[kind];
+                              const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0;
+                              return (
+                                <div key={row.id} className={(row.enabled ? "bg-white" : "bg-slate-50") + " rounded-lg border border-slate-200 p-3 shadow-sm"}>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <label className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                      <input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" />
+                                      Usa
+                                    </label>
+                                    <button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button>
+                                  </div>
+                                  <input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="mt-3 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500" />
+                                  <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-right text-sm text-slate-900 outline-none focus:border-emerald-500" />
+                                    <select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-2 text-sm outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>IVA {rate}%</option>)}</select>
+                                  </div>
+                                  <input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="mt-2 w-full rounded-md border border-slate-200 bg-white px-2 py-2 text-sm text-slate-700 outline-none focus:border-emerald-500" />
+                                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                                    <span className={"rounded-full px-2.5 py-1 font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span>
+                                    <span className="rounded-full bg-slate-50 px-2.5 py-1 font-semibold text-slate-600 ring-1 ring-slate-200">{revenuePct.toFixed(1)}% fatturato</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                        </>
                       ) : null}
                     </div>
                   );
@@ -3952,7 +4038,7 @@ export default function Home() {
                           <p className="text-sm text-sky-700">Conferma i ruoli utili e modifica costo mensile e descrizione.</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <button type="button" onClick={() => toggleWorkflowCostCategory(activeStep, group.category)} className="rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50">{isTableOpen ? "Nascondi tabella" : "Mostra tabella"}</button>
+                          <button type="button" onClick={() => toggleWorkflowCostCategory(activeStep, group.category)} className="rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50">{isTableOpen ? "Chiudi tabella" : "Apri tabella"}</button>
                           <button type="button" onClick={() => addWorkflowCost(group.category)} className="inline-flex items-center gap-1 rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"><Plus className="h-3.5 w-3.5" />Aggiungi voce</button>
                           <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">Totale {euro.format(group.total)}</span>
                         </div>
