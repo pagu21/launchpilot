@@ -140,6 +140,41 @@ body {
     display: table;
     table-layout: auto;
   }
+
+  .lp-cost-table thead th {
+    height: 2.75rem;
+    vertical-align: middle;
+    white-space: nowrap;
+    line-height: 1.15;
+  }
+
+  .lp-cost-table tbody td {
+    vertical-align: top;
+  }
+
+  .lp-scroll-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    border: 1px solid rgb(203 213 225);
+    background: rgb(248 250 252);
+    padding: 0.35rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgb(71 85 105);
+  }
+
+  .lp-scroll-hint-symbol {
+    display: inline-grid;
+    height: 1.25rem;
+    width: 1.25rem;
+    place-items: center;
+    border-radius: 999px;
+    background: white;
+    color: rgb(15 118 110);
+    box-shadow: inset 0 0 0 1px rgb(20 184 166 / 0.22);
+  }
 }
 
 @media screen {

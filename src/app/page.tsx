@@ -416,10 +416,12 @@ const advancedPages: { id: AppPage; label: string; description: string }[] = [
 
 const allAppPages = [...appPages, ...advancedPages];
 const EXPERIENCE_MODE_STORAGE_KEY = "launch-pilot:experience-mode";
+const PILOT_SUITE_URL = process.env.NEXT_PUBLIC_PILOT_SUITE_URL ?? "https://master-admin-suite.vercel.app";
 type ExperienceMode = "simple" | "advanced";
 
 const simpleAppPageIds: AppPage[] = ["dashboard", "workflow", "summary", "report"];
-const advancedOnlyPageIds: AppPage[] = ["whatif", "advisor", "esg", "pratiche"];
+const advancedOnlyPageIds: AppPage[] = ["personale", "finance", "whatif", "advisor", "esg", "pratiche"];
+const simpleWorkflowStepIndexes: number[] = [0, 1, 3, 5, 6, 9];
 
 const euro = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -641,6 +643,17 @@ function MoneyInput({
       className={className}
       aria-label="Importo euro"
     />
+  );
+}
+
+function TableScrollHint() {
+  return (
+    <div className="mb-2 flex justify-end">
+      <span className="lp-scroll-hint" aria-label="La tabella può essere fatta scorrere in orizzontale">
+        <span className="lp-scroll-hint-symbol" aria-hidden="true">↔</span>
+        Scorri orizzontalmente
+      </span>
+    </div>
   );
 }
 
@@ -1131,7 +1144,7 @@ export default function Home() {
     })
     .filter((group) => group.rows.length > 0 || group.category !== "Altro");
   const visibleInvestmentRowsByCategory = investmentRowsByCategory;
-  const openInvestmentCategoriesCount = investmentRowsByCategory.filter((group) => visibleInvestmentCategories[group.category] !== false).length;
+  const openInvestmentCategoriesCount = investmentRowsByCategory.filter((group) => visibleInvestmentCategories[group.category] === true).length;
   const confirmedInvestmentCount = confirmedInvestments.length;
   const suggestedInvestmentCount = investments.length;
   const printInvestmentGroups = investmentRowsByCategory
@@ -1756,6 +1769,20 @@ export default function Home() {
     : userProfileMode === "consulente"
       ? ["consulente", "banca", "investitore"]
       : ["consulente", "banca", "investitore", "franchisor"];
+  const businessPlanProfileGuide = userProfileMode === "cliente"
+    ? {
+        title: "Profilo ristoratore",
+        text: "Il Business Plan viene semplificato e orientato alla presentazione bancaria del progetto. Non vengono mostrate versioni consulenziali o tecniche non necessarie."
+      }
+    : userProfileMode === "consulente"
+      ? {
+          title: "Profilo consulente",
+          text: "Sono disponibili il report tecnico per commercialisti/consulenti, la versione banca e la versione investitore. Il linguaggio e l’indice si adattano al destinatario scelto."
+        }
+      : {
+          title: "Profilo master",
+          text: "Il profilo master può verificare tutte le versioni del documento e controllare la coerenza dei report generati per i diversi profili."
+        };
   const selectedBusinessPlanAudience = businessPlanAudienceCopy[businessPlanAudience];
   const investmentToRevenuePct = kpis.revenueAnnual ? (investmentTotal / kpis.revenueAnnual) * 100 : 0;
   const ownCapitalCoveragePct = investmentTotal ? ((ownCapital + confirmedGrants) / investmentTotal) * 100 : 0;
@@ -2016,7 +2043,10 @@ export default function Home() {
     return stepRows.some((row) => row.enabled) && stepRows.filter((row) => row.enabled).every((row) => row.label.trim() && row.category.trim());
   }
 
-  const completedStepsCount = workflowSteps.filter((_, index) => Boolean(confirmedSteps[index]) && isWorkflowStepReady(index)).length;
+  const visibleWorkflowStepIndexes = experienceMode === "simple"
+    ? simpleWorkflowStepIndexes
+    : workflowSteps.map((_, index) => index);
+  const completedStepsCount = visibleWorkflowStepIndexes.filter((index) => Boolean(confirmedSteps[index]) && isWorkflowStepReady(index)).length;
   const visibleAppPages = experienceMode === "simple"
     ? allAppPages.filter((page) => simpleAppPageIds.includes(page.id))
     : allAppPages;
@@ -2198,11 +2228,20 @@ export default function Home() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    if (!availableBusinessPlanAudiences.includes(businessPlanAudience)) {
+      setBusinessPlanAudience(availableBusinessPlanAudiences[0] ?? "banca");
+    }
+  }, [availableBusinessPlanAudiences, businessPlanAudience]);
+
   function updateExperienceMode(mode: ExperienceMode) {
     setExperienceMode(mode);
     window.localStorage.setItem(EXPERIENCE_MODE_STORAGE_KEY, mode);
     if (mode === "simple" && advancedOnlyPageIds.includes(activePage)) {
       setActivePage("dashboard");
+    }
+    if (mode === "simple" && !simpleWorkflowStepIndexes.includes(activeStep)) {
+      setActiveStep(0);
     }
   }
 
@@ -2332,7 +2371,7 @@ export default function Home() {
   function toggleInvestmentCategory(category: string) {
     setVisibleInvestmentCategories((current) => ({
       ...current,
-      [category]: current[category] === false,
+      [category]: current[category] !== true,
     }));
   }
 
@@ -2345,16 +2384,16 @@ export default function Home() {
   }
 
   function showAllInvestmentCategories() {
-    setVisibleInvestmentCategories({});
-  }
-
-  function closeAllInvestmentCategories() {
     setVisibleInvestmentCategories(
       investmentRowsByCategory.reduce<Record<string, boolean>>((acc, group) => {
-        acc[group.category] = false;
+        acc[group.category] = true;
         return acc;
       }, {}),
     );
+  }
+
+  function closeAllInvestmentCategories() {
+    setVisibleInvestmentCategories({});
   }
 
   function getWorkflowCostCategoryKey(stepIndex: number, category: string) {
@@ -2855,6 +2894,13 @@ export default function Home() {
               <p className="font-semibold text-slate-950">{userEmail}</p>
               <p className="text-slate-500">{userProfileMode === "consulente" ? "Profilo consulente" : "Profilo ristoratore"}</p>
             </div>
+            <a
+              href={PILOT_SUITE_URL}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
+              title="Torna alla pagina prodotti per aprire un altro programma della Suite Pilot."
+            >
+              Cambia programma
+            </a>
             <button
               type="button"
               onClick={logout}
@@ -2876,11 +2922,12 @@ export default function Home() {
             <div className="mb-4 flex items-center justify-between">
               <p className="font-semibold">Workflow guidato</p>
               <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">
-                Step {activeStep + 1}/10
+                {experienceMode === "simple" ? "Rapido" : "Completo"} · {visibleWorkflowStepIndexes.indexOf(activeStep) + 1 > 0 ? visibleWorkflowStepIndexes.indexOf(activeStep) + 1 : 1}/{visibleWorkflowStepIndexes.length}
               </span>
             </div>
             <div className="grid gap-1">
-              {workflowSteps.map((step, index) => {
+              {visibleWorkflowStepIndexes.map((index) => {
+                const step = workflowSteps[index];
                 const completed = Boolean(confirmedSteps[index]) && isWorkflowStepReady(index);
                 const current = activeStep === index;
                 return (
@@ -2914,7 +2961,7 @@ export default function Home() {
             <div className="mb-3 flex items-center justify-between">
               <p className="font-semibold">Menu progetto</p>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                {completedStepsCount}/10 ok
+                {completedStepsCount}/{visibleWorkflowStepIndexes.length} ok
               </span>
             </div>
             <div className="mb-3 rounded-lg border border-teal-100 bg-teal-50 p-2">
@@ -2932,8 +2979,8 @@ export default function Home() {
               </div>
               <p className="mt-2 text-xs leading-5 text-slate-500">
                 {experienceMode === "simple"
-                  ? "Vedi solo percorso rapido, numeri chiave e report."
-                  : "Vedi anche simulazioni, AI, ESG e pratiche."}
+                  ? "Percorso essenziale: pochi step, numeri chiave e report, senza moduli tecnici."
+                  : "Percorso completo: personale, finanza, simulazioni, AI, ESG e pratiche."}
               </p>
             </div>
             <div className="grid gap-1">
@@ -3019,6 +3066,14 @@ export default function Home() {
                               ? "Ultimo controllo prima dell'esportazione PDF: il report riprende dati, scenari, cassa, investimenti e conclusioni."
                               : "Vista sintetica per capire subito se il progetto sta in piedi, prima di entrare nel dettaglio."}
                 </p>
+                <div className={"mt-4 max-w-3xl rounded-lg border p-3 text-sm leading-6 " + (experienceMode === "simple" ? "border-teal-100 bg-teal-50 text-teal-900" : "border-indigo-100 bg-indigo-50 text-indigo-900")}>
+                  <span className="font-semibold">
+                    {experienceMode === "simple" ? "Modalità semplice attiva. " : "Modalità avanzata attiva. "}
+                  </span>
+                  {experienceMode === "simple"
+                    ? "Vedi solo il percorso rapido, i dati indispensabili e il risultato finale. Personale dettagliato, finanza, simulazioni, AI, ESG e pratiche restano nascosti."
+                    : "Sono disponibili anche personale dettagliato, investimenti e finanza, simulazioni What If, AI suggerisce, ESG e pratiche di apertura."}
+                </div>
               </div>
               {activePage !== "workflow" ? (
                 <span className={"max-w-full rounded-full px-3 py-1.5 text-sm font-semibold leading-5 ring-1 " + status.className} title={status.explanation}>
@@ -3763,12 +3818,15 @@ export default function Home() {
                       const confirmedRows = group.rows.filter((row) => row.item.confirmed).length;
                       const completionPct = group.rows.length ? (confirmedRows / group.rows.length) * 100 : 0;
                       const theme = investmentCategoryThemes[groupIndex % investmentCategoryThemes.length];
-                      const isVisible = visibleInvestmentCategories[group.category] !== false;
+                      const isVisible = visibleInvestmentCategories[group.category] === true;
                       return (
                         <button
                           key={group.category}
                           type="button"
-                          onClick={() => openInvestmentCategory(group.category)}
+                          onClick={() => {
+                            toggleInvestmentCategory(group.category);
+                            focusMainContent("investimenti-" + slugify(group.category));
+                          }}
                           className={"group rounded-lg border p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md " + (isVisible ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50 opacity-70")}
                           title={isVisible ? "Clicca per chiudere la tabella. Il titolo resterà visibile." : "Clicca per aprire la tabella."}
                         >
@@ -3792,10 +3850,10 @@ export default function Home() {
                   </nav>
                 </div>
 
-	                {visibleInvestmentRowsByCategory.map((group, groupIndex) => {
+                {visibleInvestmentRowsByCategory.map((group, groupIndex) => {
                   const categoryTotalAll = group.rows.reduce((sum, row) => sum + row.total, 0);
                   const theme = investmentCategoryThemes[investmentRowsByCategory.findIndex((item) => item.category === group.category) % investmentCategoryThemes.length];
-                  const isTableOpen = visibleInvestmentCategories[group.category] !== false;
+                  const isTableOpen = visibleInvestmentCategories[group.category] === true;
                   return (
 	                    <div id={"investimenti-" + slugify(group.category)} key={group.category} className="scroll-mt-24 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                       <div className={"flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 " + theme.header}>
@@ -3866,8 +3924,9 @@ export default function Home() {
                           );
                         })}
                       </div>
+                      <TableScrollHint />
                       <div className="lp-table-scroll overflow-x-auto">
-                        <table className="w-full min-w-[1180px] text-left text-xs">
+                        <table className="lp-cost-table w-full min-w-[1280px] text-left text-xs">
                           <thead className={"text-[11px] uppercase tracking-wide " + theme.thead}>
                             <tr>
                               <th className="px-2 py-1.5" title="Spunta questa voce solo se vuoi inserirla nei costi del progetto.">Conferma</th>
@@ -4042,7 +4101,7 @@ export default function Home() {
                               );
                             })}
                           </div>
-                          <div className="lp-table-scroll overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                          <TableScrollHint /><div className="lp-table-scroll overflow-x-auto"><table className="lp-cost-table w-full min-w-[1120px] text-left text-sm"><thead className="bg-emerald-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Voce</th><th className="px-2 py-1.5 text-right">Importo</th><th className="px-2 py-1.5">IVA</th><th className="px-2 py-1.5 text-right">% fatturato</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; const revenuePct = estimatedMonthlyRevenue ? (row.amount / estimatedMonthlyRevenue) * 100 : 0; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><select value={row.vat} onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 outline-none focus:border-emerald-500">{[0,4,10,22].map((rate) => <option key={rate} value={rate}>{rate}%</option>)}</select></td><td className="px-2 py-1.5 text-right font-semibold text-slate-700">{revenuePct.toFixed(1)}%</td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-emerald-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
                         </>
                       ) : null}
                     </div>
@@ -4082,7 +4141,10 @@ export default function Home() {
                         </div>
                       </div>
                       {isTableOpen ? (
-                        <div className="overflow-x-auto"><table className="w-full min-w-[1040px] text-left text-sm"><thead className="bg-sky-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Ruolo</th><th className="px-2 py-1.5 text-right">Costo mese</th><th className="px-2 py-1.5">Periodo</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-teal-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={(row.category.includes("Stagionale") ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-100 text-slate-700 ring-slate-200") + " rounded-full px-2.5 py-1 text-xs font-semibold ring-1"}>{row.category.includes("Stagionale") ? "Stagionale / extra" : "Continuativo"}</span></td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                        <>
+                          <TableScrollHint />
+                          <div className="lp-table-scroll overflow-x-auto"><table className="lp-cost-table w-full min-w-[1080px] text-left text-sm"><thead className="bg-sky-600 text-xs uppercase tracking-wide text-white"><tr><th className="px-2 py-1.5">Usa</th><th className="px-2 py-1.5">Ruolo</th><th className="px-2 py-1.5 text-right">Costo mese</th><th className="px-2 py-1.5">Periodo</th><th className="px-2 py-1.5">Nota</th><th className="px-2 py-1.5">Tipo</th><th className="px-2 py-1.5">Elimina</th></tr></thead><tbody className="divide-y divide-slate-100">{group.rows.map((row) => { const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label); const kindCopy = workflowCostKindCopy[kind]; return (<tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50 text-slate-500"}><td className="px-2 py-1.5"><input type="checkbox" checked={row.enabled} onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)} className="h-4 w-4 accent-teal-600" /></td><td className="px-2 py-1.5"><input value={row.label} onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><MoneyInput value={row.amount} onChange={(value) => updateWorkflowCost(row.id, "amount", value)} className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={(row.category.includes("Stagionale") ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-100 text-slate-700 ring-slate-200") + " rounded-full px-2.5 py-1 text-xs font-semibold ring-1"}>{row.category.includes("Stagionale") ? "Stagionale / extra" : "Continuativo"}</span></td><td className="px-2 py-1.5"><input value={row.note} onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)} className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none focus:border-teal-500" /></td><td className="px-2 py-1.5"><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>{kindCopy.label}</span></td><td className="px-2 py-1.5"><button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Elimina</button></td></tr>); })}</tbody></table></div>
+                        </>
                       ) : null}
                     </div>
                   );
@@ -4094,8 +4156,11 @@ export default function Home() {
                   <p className="text-sm font-semibold text-slate-950">Scenari previsionali</p>
                   <p className="mt-1 text-sm leading-6 text-slate-600">Aggiungi tutti gli scenari che vuoi: prudenziale, realistico, ottimistico, stagionale o personalizzato. Puoi modificare solo le ipotesi commerciali; clienti, fatturato, personale, costi fissi, margini e cassa vengono calcolati dal programma.</p>
                 </div>
-                <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                  <table className="w-full min-w-[1520px] text-left text-sm">
+                <div id="revenue-scenarios-table" className="scroll-mt-24">
+                  <TableScrollHint />
+                </div>
+                <div className="lp-table-scroll overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                  <table className="lp-cost-table w-full min-w-[1520px] text-left text-sm">
                     <thead className="bg-teal-600 text-xs uppercase tracking-wide text-white">
                       <tr>
                         <th className="px-2 py-1.5" title="Nome dello scenario. È un campo libero: esempio Prudenziale, Realistico, Estate, Bassa stagione.">Scenario</th>
@@ -4139,9 +4204,31 @@ export default function Home() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-3">
                   {revenueScenarioRows.map((scenario) => (
-                    <div key={scenario.key} className="rounded-md bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-200">
-                      <p className="font-semibold text-slate-950">{scenario.label}</p>
-                      <p className="mt-1">Con {effectiveOpeningDaysAnnual} giorni, {venuePeakSeats} posti e {scenario.servicesPerDay} servizi, servono {scenario.occupancyPct.toFixed(0)}% di occupazione per arrivare a {Math.round(scenario.customers).toLocaleString("it-IT")} clienti annui.</p>
+                    <div key={scenario.key} className="rounded-lg bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-950">{scenario.label}</p>
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-teal-600">{scenario.tone}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById("revenue-scenarios-table")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                          className="shrink-0 rounded-md border border-teal-200 bg-teal-50 px-2.5 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-white"
+                        >
+                          Modifica
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-md bg-slate-50 p-2 ring-1 ring-slate-100">
+                          <span className="block text-slate-500">Fatturato</span>
+                          <strong className="lp-inline-value text-slate-950">{euro.format(scenario.revenue)}</strong>
+                        </div>
+                        <div className="rounded-md bg-slate-50 p-2 ring-1 ring-slate-100">
+                          <span className="block text-slate-500">Clienti annui</span>
+                          <strong className="lp-inline-value text-slate-950">{Math.round(scenario.customers).toLocaleString("it-IT")}</strong>
+                        </div>
+                      </div>
+                      <p className="mt-3 leading-5">Con {effectiveOpeningDaysAnnual} giorni, {venuePeakSeats} posti e {scenario.servicesPerDay} servizi, l&apos;ipotesi usa il {scenario.occupancyPct.toFixed(0)}% della capacità.</p>
                     </div>
                   ))}
                 </div>
@@ -5285,17 +5372,17 @@ export default function Home() {
 
           <section className={(activePage === "advisor" ? "" : "hidden ") + "space-y-6"}>
             <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Modulo 12</p><h3 className="mt-1 text-2xl font-semibold text-slate-950">AI suggerisce</h3><p className="mt-2 text-sm leading-6 text-slate-500">Interpreta i numeri del progetto e li trasforma in consigli pratici, chiari e comprensibili.</p></div>
+                  <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Modulo 12</p><h3 className="mt-1 text-xl font-semibold text-slate-950">AI suggerisce</h3><p className="mt-1 text-sm leading-5 text-slate-500">Legge i numeri e indica subito cosa controllare.</p></div>
                   <span className={"rounded-full px-3 py-1.5 text-sm font-semibold ring-1 " + aiScoreLevel.className}>{aiScoreLevel.label}</span>
                 </div>
-                <div className="mt-6 grid gap-4 sm:grid-cols-[160px_1fr]">
-                  <div className="grid place-items-center rounded-lg bg-slate-50 p-4 ring-1 ring-slate-200">
-                    {mounted && activePage === "advisor" ? (<PieChart width={150} height={150}><Pie data={aiScoreData} innerRadius={48} outerRadius={68} startAngle={90} endAngle={-270} dataKey="value"><Cell fill={aiScoreLevel.tone === "green" ? "#10b981" : aiScoreLevel.tone === "yellow" ? "#f59e0b" : "#e11d48"} /><Cell fill="#e2e8f0" /></Pie></PieChart>) : (<div className="h-[150px] w-[150px] rounded-full bg-slate-100" />)}
-                    <p className="-mt-24 text-3xl font-semibold text-slate-950">{aiConsultantScore}</p><p className="mt-16 text-xs font-semibold uppercase text-slate-400">su 100</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-[120px_1fr]">
+                  <div className="grid place-items-center rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
+                    {mounted && activePage === "advisor" ? (<PieChart width={110} height={110}><Pie data={aiScoreData} innerRadius={36} outerRadius={50} startAngle={90} endAngle={-270} dataKey="value"><Cell fill={aiScoreLevel.tone === "green" ? "#10b981" : aiScoreLevel.tone === "yellow" ? "#f59e0b" : "#e11d48"} /><Cell fill="#e2e8f0" /></Pie></PieChart>) : (<div className="h-[110px] w-[110px] rounded-full bg-slate-100" />)}
+                    <p className="-mt-[72px] text-2xl font-semibold text-slate-950">{aiConsultantScore}</p><p className="mt-10 text-[11px] font-semibold uppercase text-slate-400">su 100</p>
                   </div>
-                  <div className="grid gap-3"><div className="rounded-lg bg-teal-50 p-4 ring-1 ring-teal-100"><p className="text-sm font-semibold text-teal-950">Executive summary</p><p className="mt-2 text-sm leading-6 text-teal-800">{aiExecutiveSummary}</p></div><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Fatturato</p><p className="lp-card-value mt-1">{euro.format(kpis.revenueAnnual)}</p></div><div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Margine lordo</p><p className="lp-card-value mt-1">{kpis.ebitdaPct.toFixed(1)}%</p></div><div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Pareggio</p><p className="lp-card-value mt-1">{Math.ceil(breakEvenCustomersDaily)} clienti/giorno</p></div></div></div>
+                  <div className="grid gap-3"><div className="rounded-lg bg-teal-50 p-3 ring-1 ring-teal-100"><p className="text-sm font-semibold text-teal-950">Sintesi</p><p className="mt-1 text-sm leading-5 text-teal-800">{aiExecutiveSummary}</p></div><div className="grid gap-2 sm:grid-cols-3"><div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Fatturato</p><p className="lp-card-value-sm mt-1">{euro.format(kpis.revenueAnnual)}</p></div><div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Margine</p><p className="lp-card-value-sm mt-1">{kpis.ebitdaPct.toFixed(1)}%</p></div><div className="rounded-lg bg-white p-3 ring-1 ring-slate-200"><p className="text-xs font-semibold uppercase text-slate-400">Pareggio</p><p className="lp-card-value-sm mt-1">{Math.ceil(breakEvenCustomersDaily)} clienti/giorno</p></div></div></div>
                 </div>
               </div>
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-semibold text-slate-950">Cosa migliorare subito</p><div className="mt-4 grid gap-3">{aiPriorities.map((group) => (<div key={group.priority} className="rounded-lg bg-slate-50 p-4 ring-1 ring-slate-200"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Priorità {group.priority}</p><span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + (group.priority === "Alta" ? "bg-rose-50 text-rose-700 ring-rose-200" : group.priority === "Media" ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-emerald-50 text-emerald-700 ring-emerald-200")}>{group.items.length} azioni</span></div><ul className="mt-3 space-y-2 text-sm text-slate-700">{(group.items.length ? group.items : ["Continuare il monitoraggio dei numeri principali"]).map((item) => (<li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" /><span>{item}</span></li>))}</ul></div>))}</div></div>
@@ -5777,6 +5864,19 @@ export default function Home() {
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Trasforma i dati del progetto in un piano leggibile, credibile e presentabile. Il testo si adatta automaticamente a investimenti, margini, DSCR, cassa e rischi.</p>
                 </div>
                 <span className={"rounded-full px-3 py-1.5 text-xs font-semibold ring-1 " + businessPlanLevel.className}>{businessPlanLevel.label}</span>
+              </div>
+
+              <div className="mt-5 rounded-lg border border-teal-100 bg-teal-50/70 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">Report in base al profilo</p>
+                    <h4 className="mt-1 font-semibold text-slate-950">{businessPlanProfileGuide.title}</h4>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">{businessPlanProfileGuide.text}</p>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-100">
+                    {availableBusinessPlanAudiences.length} versioni disponibili
+                  </span>
+                </div>
               </div>
 
               <div className="mt-5 grid gap-3 md:grid-cols-3">
