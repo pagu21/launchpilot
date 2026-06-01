@@ -2899,7 +2899,7 @@ export default function Home() {
               className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-700"
               title="Torna alla pagina prodotti per aprire un altro programma della Suite Pilot."
             >
-              Cambia programma
+              Altri programmi Suite Pilot
             </a>
             <button
               type="button"
@@ -2979,8 +2979,8 @@ export default function Home() {
               </div>
               <p className="mt-2 text-xs leading-5 text-slate-500">
                 {experienceMode === "simple"
-                  ? "Percorso essenziale: pochi step, numeri chiave e report, senza moduli tecnici."
-                  : "Percorso completo: personale, finanza, simulazioni, AI, ESG e pratiche."}
+                  ? "Percorso rapido: solo i passaggi indispensabili, risultato e report finale."
+                  : "Percorso completo: include simulazioni, finanza, AI, ESG, pratiche e controlli professionali."}
               </p>
             </div>
             <div className="grid gap-1">
@@ -3068,11 +3068,11 @@ export default function Home() {
                 </p>
                 <div className={"mt-4 max-w-3xl rounded-lg border p-3 text-sm leading-6 " + (experienceMode === "simple" ? "border-teal-100 bg-teal-50 text-teal-900" : "border-indigo-100 bg-indigo-50 text-indigo-900")}>
                   <span className="font-semibold">
-                    {experienceMode === "simple" ? "Modalità semplice attiva. " : "Modalità avanzata attiva. "}
+                    {experienceMode === "simple" ? "Modalità semplice: vai dritto al risultato. " : "Modalità avanzata: controllo completo. "}
                   </span>
                   {experienceMode === "simple"
-                    ? "Vedi solo il percorso rapido, i dati indispensabili e il risultato finale. Personale dettagliato, finanza, simulazioni, AI, ESG e pratiche restano nascosti."
-                    : "Sono disponibili anche personale dettagliato, investimenti e finanza, simulazioni What If, AI suggerisce, ESG e pratiche di apertura."}
+                    ? "Compili pochi dati, controlli se il progetto regge e arrivi al report senza passare da schermate tecniche."
+                    : "Hai accesso a tutte le analisi: personale, investimenti, finanza, What If, AI suggerisce, ESG e pratiche di apertura."}
                 </div>
               </div>
               {activePage !== "workflow" ? (
@@ -3102,15 +3102,15 @@ export default function Home() {
                   className: "border-teal-200 bg-teal-50 text-teal-700",
                 },
                 {
-                  title: "Controllo se il progetto regge",
-                  text: "Vedi subito fatturato minimo, clienti necessari, rischi e liquidità.",
+                  title: "Capisco subito se regge",
+                  text: "Mostra in modo semplice pareggio, clienti necessari, rischi e cassa.",
                   action: "Vedi risultato",
                   icon: Gauge,
                   page: "summary" as AppPage,
                   className: "border-sky-200 bg-sky-50 text-sky-700",
                 },
                 {
-                  title: "Preparo il report da stampare",
+                  title: "Preparo il report finale",
                   text: "Controlla anteprima, intestazione, versione report e stampa PDF.",
                   action: "Apri report",
                   icon: Download,
@@ -6049,16 +6049,6 @@ export default function Home() {
             </div>
           </section>
 
-          <section className={(activePage === "dashboard" || activePage === "report" ? "" : "hidden ") + "rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"}>
-            <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 flex-none" />
-              <p>
-                Prototipo operativo: Supabase, Stripe e generazione report sono
-                predisposti con file e API dedicate. Collegando le chiavi ambiente
-                si abilita persistenza dati, autenticazione reale e pagamenti.
-              </p>
-            </div>
-          </section>
         </div>
       </div>
     </main>
