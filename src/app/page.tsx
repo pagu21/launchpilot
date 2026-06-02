@@ -210,7 +210,7 @@ type VenueProfile = {
   openingMode: "Annuale" | "Stagionale";
   seasonStartDate: string;
   seasonEndDate: string;
-  weeklyClosingDay: string;
+  weeklyClosingDays: string[];
   openingDaysAnnual: number;
   breakfast: boolean;
   lunch: boolean;
@@ -263,24 +263,37 @@ const additionalRevenueChannelPresets = [
   "Vendita tramite hotel",
   "Vendita tramite stabilimenti balneari",
 ];
-const weeklyClosingDays = ["Nessuno", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
+const weeklyRestDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"];
 const closingDayIndex: Record<string, number> = { "Domenica": 0, "Lunedì": 1, "Martedì": 2, "Mercoledì": 3, "Giovedì": 4, "Venerdì": 5, "Sabato": 6 };
 
-const calculateOpeningDays = (startDate: string, endDate: string, closingDay: string) => {
+const normalizeClosingDays = (closingDays: string[] | string | undefined) => {
+  if (!closingDays) return [];
+  const days = Array.isArray(closingDays) ? closingDays : [closingDays];
+  return days.filter((day) => day && day !== "Nessuno");
+};
+
+const formatClosingDays = (closingDays: string[] | string | undefined) => {
+  const days = normalizeClosingDays(closingDays);
+  if (!days.length) return "nessun giorno di riposo";
+  if (days.length === 1) return days[0];
+  return days.join(", ");
+};
+
+const calculateOpeningDays = (startDate: string, endDate: string, closingDays: string[] | string) => {
   const start = new Date(startDate + "T00:00:00");
   const end = new Date(endDate + "T00:00:00");
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
   let days = 0;
-  const closedIndex = closingDayIndex[closingDay];
+  const closedIndexes = new Set(normalizeClosingDays(closingDays).map((day) => closingDayIndex[day]).filter((index) => typeof index === "number"));
   for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
-    if (closingDay === "Nessuno" || day.getDay() !== closedIndex) days += 1;
+    if (!closedIndexes.has(day.getDay())) days += 1;
   }
   return days;
 };
 
-const getRoomOpeningDays = (room: VenueRoom, fallbackDays: number, closingDay: string) => {
+const getRoomOpeningDays = (room: VenueRoom, fallbackDays: number, closingDays: string[] | string) => {
   if (room.season === "Tutto l'anno") return fallbackDays;
-  return calculateOpeningDays(room.seasonStartDate, room.seasonEndDate, closingDay);
+  return calculateOpeningDays(room.seasonStartDate, room.seasonEndDate, closingDays);
 };
 
 const amortizationCategoryPresets = [
@@ -739,13 +752,13 @@ function KpiCard({
 function VenueRoomsEditor({
   venueRooms,
   effectiveOpeningDaysAnnual,
-  weeklyClosingDay,
+  weeklyClosingDays,
   onUpdate,
   onAdd,
 }: {
   venueRooms: VenueRoom[];
   effectiveOpeningDaysAnnual: number;
-  weeklyClosingDay: string;
+  weeklyClosingDays: string[];
   onUpdate: (id: string, key: keyof Omit<VenueRoom, "id">, value: string | number | boolean) => void;
   onAdd: () => void;
 }) {
@@ -755,7 +768,7 @@ function VenueRoomsEditor({
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Sale e coperti disponibili</p>
           <h3 className="mt-1 text-lg font-semibold text-slate-950">Capienza reale del locale</h3>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Inserisci sale interne, dehors o sale stagionali: i giorni vengono calcolati considerando la chiusura settimanale.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Inserisci sale interne, dehors o sale stagionali: i giorni vengono calcolati considerando i giorni di riposo settimanali.</p>
         </div>
         <button type="button" onClick={onAdd} className="inline-flex w-fit items-center gap-2 rounded-md border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50">
           <Plus className="h-4 w-4" />
@@ -777,7 +790,7 @@ function VenueRoomsEditor({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {venueRooms.map((room) => {
-              const roomDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, weeklyClosingDay);
+              const roomDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, weeklyClosingDays);
               return (
                 <tr key={room.id}>
                   <td className="px-2 py-1.5"><input value={room.name} onChange={(event) => onUpdate(room.id, "name", event.target.value)} className="w-full rounded-md border border-slate-200 px-2 py-1.5 outline-none focus:border-teal-500" /></td>
@@ -905,7 +918,7 @@ export default function Home() {
     openingMode: "Annuale",
     seasonStartDate: "2026-01-01",
     seasonEndDate: "2026-12-31",
-    weeklyClosingDay: "Lunedì",
+    weeklyClosingDays: ["Lunedì"],
     openingDaysAnnual: prudentialBenchmark.openingDaysAnnual,
     breakfast: false,
     lunch: true,
@@ -1057,15 +1070,15 @@ export default function Home() {
   ]);
 
   const calculatedOpeningDaysAnnual = venueProfile.openingMode === "Stagionale"
-    ? calculateOpeningDays(venueProfile.seasonStartDate, venueProfile.seasonEndDate, venueProfile.weeklyClosingDay)
-    : calculateOpeningDays("2026-01-01", "2026-12-31", venueProfile.weeklyClosingDay);
+    ? calculateOpeningDays(venueProfile.seasonStartDate, venueProfile.seasonEndDate, venueProfile.weeklyClosingDays)
+    : calculateOpeningDays("2026-01-01", "2026-12-31", venueProfile.weeklyClosingDays);
   const effectiveOpeningDaysAnnual = Math.max(calculatedOpeningDaysAnnual || venueProfile.openingDaysAnnual, 1);
   const activeServiceBandsForVenue = serviceBandDefinitions.filter((band) => venueProfile[band.key]);
   const activeServiceCountForVenue = Math.max(activeServiceBandsForVenue.length, 1);
 
   const venueAnnualCapacity = venueRooms.reduce((sum, room) => {
     const activeServices = serviceBandDefinitions.filter((band) => Boolean(room[band.key]) && Boolean(venueProfile[band.key])).length;
-    const roomOpeningDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, venueProfile.weeklyClosingDay);
+    const roomOpeningDays = getRoomOpeningDays(room, effectiveOpeningDaysAnnual, venueProfile.weeklyClosingDays);
     return sum + room.seats * roomOpeningDays * activeServices;
   }, 0);
   const venuePeakSeats = venueRooms.reduce((sum, room) => sum + room.seats, 0);
@@ -2287,9 +2300,21 @@ export default function Home() {
     setConfirmedSteps((current) => ({ ...current, [activeStep]: false }));
   }
 
-  function updateVenueProfile(key: keyof VenueProfile, value: string | number | boolean) {
+  function updateVenueProfile(key: keyof VenueProfile, value: string | number | boolean | string[]) {
     markStepDirty(0);
     setVenueProfile((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleWeeklyRestDay(day: string) {
+    markStepDirty(0);
+    setVenueProfile((current) => {
+      const currentDays = normalizeClosingDays(current.weeklyClosingDays);
+      const hasDay = currentDays.includes(day);
+      return {
+        ...current,
+        weeklyClosingDays: hasDay ? currentDays.filter((item) => item !== day) : [...currentDays, day],
+      };
+    });
   }
 
   function updateVenueRoom(id: string, key: keyof Omit<VenueRoom, "id">, value: string | number | boolean) {
@@ -2850,18 +2875,18 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 shrink-0 items-center">
             <Image
               src="/launch-pilot-logo.png"
               alt="Launch Pilot - Il futuro del tuo ristorante inizia qui"
               width={270}
               height={135}
               priority
-              className="h-12 w-auto object-contain sm:h-14"
+              className="h-10 w-auto object-contain sm:h-12"
             />
           </div>
-          <nav className="hidden h-14 max-w-[620px] items-center gap-1 overflow-hidden rounded-md bg-slate-100 p-1 xl:flex">
+          <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto rounded-md bg-slate-100 p-1 lg:order-none lg:w-auto lg:max-w-[min(680px,52vw)]">
 	            {visibleAppPages.map((page) => (
 	              <button
 	                key={page.id}
@@ -3471,8 +3496,8 @@ export default function Home() {
                 <p className="mt-1 text-xs text-amber-700">{prudentialBenchmark.breakEvenCustomers.B.toLocaleString("it-IT")} clienti anno</p>
               </div>
             </div>
-            <div className="mt-5 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-              <div className="rounded-md border border-slate-200 p-4">
+            <div className="mt-5 grid items-start gap-4 xl:grid-cols-[0.78fr_1.22fr]">
+              <div className="self-start rounded-md border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="mb-3 text-sm font-semibold text-slate-950">Punto di pareggio A/B/C</p>
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   {(["A", "B", "C"] as const).map((scenario) => (
@@ -3483,9 +3508,12 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+                <p className="mt-3 rounded-md bg-teal-50 px-3 py-2 text-xs font-semibold leading-5 text-teal-800">
+                  Il pareggio indica quanti clienti servono per coprire costi fissi, variabili e lavoro nelle tre ipotesi.
+                </p>
               </div>
-              <div className="rounded-md border border-slate-200 bg-white">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-3">
+              <div className="self-start overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Costi fissi e variabili</p>
                     <p className="text-xs text-slate-500">Aggiungi nuove voci nei comparti principali e poi classificale come fisso, variabile o una tantum.</p>
@@ -3495,7 +3523,7 @@ export default function Home() {
                     <button type="button" onClick={() => addBenchmarkCostRow("Utenze", "Variabile")} className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-white"><Plus className="h-3.5 w-3.5" />Aggiungi variabile</button>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="max-h-[560px] overflow-auto">
                 <table className="w-full min-w-[820px] text-left text-sm">
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
@@ -3662,7 +3690,42 @@ export default function Home() {
                   <label className="text-sm font-medium text-slate-700">Target prevalente<input list="target-presets" value={venueProfile.target} onChange={(event) => updateVenueProfile("target", event.target.value)} placeholder="Es. business, famiglie, turisti..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="target-presets">{targetPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un preset o scrivi un target personalizzato.</span></label>
                   <label className="text-sm font-medium text-slate-700">Cucina<input value={venueProfile.cuisineType} onChange={(event) => updateVenueProfile("cuisineType", event.target.value)} placeholder="Es. cucina romana, pesce, pizzeria gourmet..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><span className="mt-1 block text-xs leading-5 text-slate-500">Campo libero: scrivi la cucina reale del locale.</span></label>
                   <label className="text-sm font-medium text-slate-700">Forma / format locale<input list="restaurant-format-presets" value={venueProfile.restaurantFormat} onChange={(event) => updateVenueProfile("restaurantFormat", event.target.value)} placeholder="Es. osteria moderna, pizzeria gourmet, bar pranzo veloce..." className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /><datalist id="restaurant-format-presets">{restaurantFormatPresets.map((preset) => <option key={preset} value={preset} />)}</datalist><span className="mt-1 block text-xs leading-5 text-slate-500">Scegli un suggerimento o scrivi liberamente il format: verrà usato in analisi, scenari e report.</span></label>
-                  <label className="text-sm font-medium text-slate-700">Tipo apertura<select value={venueProfile.openingMode} onChange={(event) => updateVenueProfile("openingMode", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500"><option>Annuale</option><option>Stagionale</option></select></label><label className="text-sm font-medium text-slate-700">Chiusura settimanale<select value={venueProfile.weeklyClosingDay} onChange={(event) => updateVenueProfile("weeklyClosingDay", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">{weeklyClosingDays.map((day) => <option key={day}>{day}</option>)}</select></label>{venueProfile.openingMode === "Stagionale" ? (<><label className="text-sm font-medium text-slate-700">Inizio stagione<input type="date" value={venueProfile.seasonStartDate} onChange={(event) => updateVenueProfile("seasonStartDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label><label className="text-sm font-medium text-slate-700">Fine stagione<input type="date" value={venueProfile.seasonEndDate} onChange={(event) => updateVenueProfile("seasonEndDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label></>) : null}<div className="rounded-md bg-teal-50 p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Giorni apertura calcolati</p><p className="mt-1 lp-card-value-sm text-teal-950">{effectiveOpeningDaysAnnual}</p><p className="text-xs text-teal-700">Tiene conto di periodo e chiusura settimanale.</p></div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Tipo apertura
+                    <select value={venueProfile.openingMode} onChange={(event) => updateVenueProfile("openingMode", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500">
+                      <option>Annuale</option>
+                      <option>Stagionale</option>
+                    </select>
+                  </label>
+                  <div className="rounded-md bg-white p-3 ring-1 ring-teal-100 md:col-span-2 xl:col-span-3">
+                    <p className="text-sm font-semibold text-slate-700">Giorni di riposo settimanali</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">Seleziona uno o più giorni in cui il locale resta chiuso. Se non selezioni nulla, il programma considera il locale aperto tutti i giorni del periodo.</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {weeklyRestDays.map((day) => {
+                        const selected = normalizeClosingDays(venueProfile.weeklyClosingDays).includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => toggleWeeklyRestDay(day)}
+                            className={"rounded-full px-3 py-2 text-xs font-semibold ring-1 transition " + (selected ? "bg-teal-600 text-white ring-teal-600" : "bg-slate-50 text-slate-600 ring-slate-200 hover:bg-teal-50 hover:text-teal-700")}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-3 rounded-md bg-teal-50 px-3 py-2 text-xs font-semibold leading-5 text-teal-900">
+                      Riposo impostato: {formatClosingDays(venueProfile.weeklyClosingDays)}. Esempio prudenziale: se un locale in inverno apre solo venerdì, sabato e domenica, seleziona lunedì, martedì, mercoledì e giovedì come giorni di riposo.
+                    </p>
+                  </div>
+                  {venueProfile.openingMode === "Stagionale" ? (
+                    <>
+                      <label className="text-sm font-medium text-slate-700">Inizio stagione<input type="date" value={venueProfile.seasonStartDate} onChange={(event) => updateVenueProfile("seasonStartDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
+                      <label className="text-sm font-medium text-slate-700">Fine stagione<input type="date" value={venueProfile.seasonEndDate} onChange={(event) => updateVenueProfile("seasonEndDate", event.target.value)} className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 outline-none transition focus:border-teal-500" /></label>
+                    </>
+                  ) : null}
+                  <div className="rounded-md bg-teal-50 p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Giorni apertura calcolati</p><p className="mt-1 lp-card-value-sm text-teal-950">{effectiveOpeningDaysAnnual}</p><p className="text-xs text-teal-700">Tiene conto di periodo e giorni di riposo.</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Capienza annua</p><p className="mt-1 lp-card-value-sm text-teal-950">{Math.round(venueAnnualCapacity).toLocaleString("it-IT")}</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Coperti massimi</p><p className="mt-1 lp-card-value-sm text-teal-950">{venuePeakSeats}</p></div>
                   <div className="rounded-md bg-white p-3 ring-1 ring-teal-100"><p className="text-xs font-semibold uppercase text-teal-600">Sale attive</p><p className="mt-1 lp-card-value-sm text-teal-950">{venueActiveRooms}</p></div>
@@ -3670,7 +3733,7 @@ export default function Home() {
                 <VenueRoomsEditor
                   venueRooms={venueRooms}
                   effectiveOpeningDaysAnnual={effectiveOpeningDaysAnnual}
-                  weeklyClosingDay={venueProfile.weeklyClosingDay}
+                  weeklyClosingDays={venueProfile.weeklyClosingDays}
                   onUpdate={updateVenueRoom}
                   onAdd={addVenueRoom}
                 />
