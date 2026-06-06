@@ -855,6 +855,17 @@ function buildDefaultReportBranding(profile: UserProfileMode, venue: VenueProfil
 }
 
 export default function Home() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.history.pushState({ launchPilotGuard: true }, "", window.location.href);
+    const handlePopState = () => {
+      window.history.pushState({ launchPilotGuard: true }, "", window.location.href);
+      window.alert("Per uscire usa il pulsante Esci. In questo modo la sessione viene chiusa correttamente.");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const [mounted, setMounted] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [activePage, setActivePage] = useState<AppPage>("dashboard");
@@ -3105,6 +3116,35 @@ export default function Home() {
                   {status.shortLabel}
                 </span>
               ) : null}
+            </div>
+          </section>
+
+          <section className={(activePage === "dashboard" ? "" : "hidden ") + "rounded-lg border border-teal-100 bg-gradient-to-br from-white via-teal-50/60 to-sky-50 p-5 shadow-sm"}>
+            <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">Prima lettura</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950 md:text-3xl">LaunchPilot ti dice se il progetto può stare in piedi.</h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
+                  Serve per aprire, rivedere o finanziare un ristorante con più consapevolezza. Inserisci pochi dati pratici: format, posti, giorni di apertura, servizi, investimenti, personale e ricavi. Il programma calcola costi, liquidità, punto di pareggio, rischi e report.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button type="button" onClick={() => setActivePage("workflow")} className="rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800">Inizia il percorso guidato</button>
+                  <button type="button" onClick={() => setActivePage("summary")} className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-teal-200 hover:text-teal-800">Guarda il risultato</button>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                {[
+                  ["1", "Definisci il locale", "Format, zona, posti, servizi e giorni di apertura."],
+                  ["2", "Conferma costi e ricavi", "Investimenti, personale, costi variabili e incassi previsti."],
+                  ["3", "Leggi cosa cambia", "Pareggio, cassa, fabbisogno, rischi e report stampabile."]
+                ].map(([step, title, copy]) => (
+                  <div key={step} className="rounded-lg border border-white/80 bg-white/85 p-4 shadow-sm">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-sm font-bold text-teal-800">{step}</span>
+                    <p className="mt-3 font-semibold text-slate-950">{title}</p>
+                    <p className="mt-1 text-sm leading-5 text-slate-500">{copy}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
