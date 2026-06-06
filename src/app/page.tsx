@@ -4351,101 +4351,118 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full min-w-[980px] text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-2 py-1.5">Usa</th>
-                      <th className="px-2 py-1.5">Voce</th>
-                      <th className="px-2 py-1.5">Categoria</th>
-                      <th className="px-2 py-1.5">Importo</th>
-                      <th className="px-2 py-1.5">IVA</th>
-                      <th className="px-2 py-1.5">Classificazione</th>
-                      <th className="px-2 py-1.5">Tipo</th>
-                      <th className="px-2 py-1.5">Suggerimento</th>
-                      <th className="px-2 py-1.5">Elimina</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {activeWorkflowRows.map((row) => {
-                      const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label);
-                      const kindCopy = workflowCostKindCopy[kind];
+                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">Voci di costo da confermare</p>
+                        <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-600">
+                          Questa tabella serve per scegliere quali costi inserire nel progetto. Spunta “Usa nel progetto” solo per le voci che ti servono, modifica importi e IVA, oppure elimina le righe non utili.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">Scorri se non vedi tutte le colonne</span>
+                    </div>
+                  </div>
+                  <TableScrollHint />
+                  <div className="lp-table-scroll overflow-x-auto">
+                    <table className="lp-cost-table w-full min-w-[1320px] text-left text-sm">
+                      <thead className="bg-slate-700 text-xs uppercase tracking-wide text-white">
+                        <tr>
+                          <th className="w-[110px] px-3 py-2" title="Seleziona la voce solo se questo costo riguarda davvero il tuo locale.">Usa nel progetto</th>
+                          <th className="w-[290px] px-3 py-2" title="Nome chiaro del costo. Puoi modificarlo liberamente.">Voce di costo</th>
+                          <th className="w-[210px] px-3 py-2" title="Gruppo a cui appartiene il costo.">Categoria</th>
+                          <th className="w-[150px] px-3 py-2 text-right" title="Costo stimato IVA esclusa. Puoi modificarlo.">Importo stimato</th>
+                          <th className="w-[110px] px-3 py-2" title="Aliquota IVA applicata alla voce.">IVA</th>
+                          <th className="w-[170px] px-3 py-2" title="Il programma indica se il costo è fisso, variabile o una tantum.">Fisso / variabile</th>
+                          <th className="w-[130px] px-3 py-2" title="Indica se la voce era già suggerita o aggiunta manualmente.">Origine</th>
+                          <th className="w-[300px] px-3 py-2" title="Nota semplice per ricordare perché il costo è stato inserito.">Nota utile</th>
+                          <th className="w-[100px] px-3 py-2">Elimina</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {activeWorkflowRows.map((row) => {
+                          const kind = classifyWorkflowCost(row.stepIndex, row.category, row.label);
+                          const kindCopy = workflowCostKindCopy[kind];
 
-                      return (
-                      <tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50/70 text-slate-400"}>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="checkbox"
-                            checked={row.enabled}
-                            onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)}
-                            className="h-4 w-4 accent-teal-600"
-                            aria-label={"Usa " + row.label}
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            value={row.label}
-                            onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)}
-                            className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
-                            disabled={!row.enabled}
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            value={row.category}
-                            onChange={(event) => updateWorkflowCost(row.id, "category", event.target.value)}
-                            className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
-                            disabled={!row.enabled}
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <MoneyInput
-                            value={row.amount}
-                            onChange={(value) => updateWorkflowCost(row.id, "amount", value)}
-                            className="w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
-                            disabled={!row.enabled}
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <select
-                            value={row.vat}
-                            onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))}
-                            className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
-                            disabled={!row.enabled}
-                          >
-                            {[0, 4, 10, 22].map((rate) => (
-                              <option key={rate} value={rate}>{rate}%</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>
-                            {kindCopy.label}
-                          </span>
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (row.custom ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" : "bg-teal-50 text-teal-700 ring-1 ring-teal-200")}>
-                            {row.custom ? "Manuale" : "Preset"}
-                          </span>
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            value={row.note}
-                            onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)}
-                            className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-600 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
-                            disabled={!row.enabled}
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                            Elimina
-                          </button>
-                        </td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          return (
+                          <tr key={row.id} className={row.enabled ? "bg-white" : "bg-slate-50/70 text-slate-400"}>
+                            <td className="px-3 py-2 align-middle">
+                              <label className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                <input
+                                  type="checkbox"
+                                  checked={row.enabled}
+                                  onChange={(event) => updateWorkflowCost(row.id, "enabled", event.target.checked)}
+                                  className="h-4 w-4 accent-teal-600"
+                                  aria-label={"Usa " + row.label}
+                                />
+                                Usa
+                              </label>
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                value={row.label}
+                                onChange={(event) => updateWorkflowCost(row.id, "label", event.target.value)}
+                                className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 font-medium text-slate-900 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
+                                disabled={!row.enabled}
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                value={row.category}
+                                onChange={(event) => updateWorkflowCost(row.id, "category", event.target.value)}
+                                className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
+                                disabled={!row.enabled}
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <MoneyInput
+                                value={row.amount}
+                                onChange={(value) => updateWorkflowCost(row.id, "amount", value)}
+                                className="w-32 rounded-md border border-slate-200 bg-white px-2 py-1 text-right text-xs text-slate-900 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
+                                disabled={!row.enabled}
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                value={row.vat}
+                                onChange={(event) => updateWorkflowCost(row.id, "vat", Number(event.target.value))}
+                                className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-700 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
+                                disabled={!row.enabled}
+                              >
+                                {[0, 4, 10, 22].map((rate) => (
+                                  <option key={rate} value={rate}>{rate}%</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className={"rounded-full px-2.5 py-1 text-xs font-semibold ring-1 " + kindCopy.className}>
+                                {kindCopy.label}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (row.custom ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" : "bg-teal-50 text-teal-700 ring-1 ring-teal-200")}>
+                                {row.custom ? "Aggiunta da te" : "Suggerita"}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                value={row.note}
+                                onChange={(event) => updateWorkflowCost(row.id, "note", event.target.value)}
+                                className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-600 outline-none transition focus:border-teal-500 disabled:bg-slate-50"
+                                disabled={!row.enabled}
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <button type="button" onClick={() => deleteWorkflowCost(row.id)} className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                                Elimina
+                              </button>
+                            </td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
