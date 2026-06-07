@@ -7,7 +7,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register" | "recover">("login");
+  const [mode, setMode] = useState<"login" | "recover">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -25,20 +25,13 @@ export default function LoginPage() {
       return;
     }
 
-    const action =
-      mode === "login"
-        ? supabase.auth.signInWithPassword({ email, password })
-        : supabase.auth.signUp({ email, password });
-    const { error } = await action;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setMessage(error.message);
       return;
     }
-    if (mode === "login") {
-      window.location.href = "/";
-      return;
-    }
-    setMessage("Account creato. Controlla la tua email se viene richiesta la conferma.");
+    window.location.href = "/";
+    return;
   }
 
   return (
@@ -79,11 +72,7 @@ export default function LoginPage() {
               Accesso personale
             </p>
             <h2 className="mt-2 text-3xl font-semibold">
-              {mode === "login"
-                ? "Accedi"
-                : mode === "register"
-                  ? "Crea account"
-                  : "Recupera password"}
+              {mode === "login" ? "Accedi" : "Recupera password"}
             </h2>
           </div>
 
@@ -118,11 +107,7 @@ export default function LoginPage() {
               onClick={submit}
               className="rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
             >
-              {mode === "login"
-                ? "Accedi"
-                : mode === "register"
-                  ? "Registrati"
-                  : "Invia recupero"}
+              {mode === "login" ? "Accedi" : "Invia recupero"}
             </button>
             {message ? (
               <p className="rounded-md bg-slate-100 p-3 text-sm text-slate-600">
@@ -132,12 +117,9 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 grid gap-2 text-sm">
-            <button
-              onClick={() => setMode(mode === "login" ? "register" : "login")}
-              className="text-left font-semibold text-blue-700"
-            >
-              {mode === "login" ? "Non hai un account? Registrati" : "Hai già un account? Accedi"}
-            </button>
+            <Link href="https://master-admin-suite.vercel.app/registrazione" className="font-semibold text-blue-700">
+              Non hai un accesso? Richiedi attivazione
+            </Link>
             <button
               onClick={() => setMode("recover")}
               className="text-left font-semibold text-slate-500"
