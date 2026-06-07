@@ -5109,45 +5109,83 @@ export default function Home() {
             </div>
           </section>
 
-          <section className={(activePage === "summary" ? "" : "hidden ") + "rounded-lg border border-teal-200 bg-white p-5 shadow-sm"}>
-            <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-600">Risultato immediato</p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-950">Il progetto sta in piedi?</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                  Questa è la lettura più semplice: quanto devi incassare, quanti clienti servono e dove intervenire prima di presentare il progetto.
-                </p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-lg bg-teal-50 p-4 ring-1 ring-teal-100">
-                    <p className="text-xs font-semibold uppercase text-teal-600">Stato progetto</p>
-                    <p className="mt-2 text-lg font-semibold leading-tight text-teal-950">{status.shortLabel}</p>
-                    <p className="mt-1 text-xs leading-5 text-teal-700">{status.explanation}</p>
+          <section className={(activePage === "summary" ? "" : "hidden ") + "overflow-hidden rounded-xl border border-teal-200 bg-white shadow-sm"}>
+            <div className="grid gap-0 xl:grid-cols-[1.1fr_0.9fr]">
+              <div className="bg-gradient-to-br from-white via-teal-50/60 to-sky-50 p-5 md:p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700">Risultato immediato</p>
+                <div className="mt-3 grid gap-4 lg:grid-cols-[260px_1fr] lg:items-start">
+                  <div className="rounded-xl border border-teal-200 bg-white p-4 shadow-sm">
+                    <p className="text-sm font-bold text-slate-500">Verdetto</p>
+                    <p className="mt-2 text-3xl font-black tracking-tight text-teal-800">{status.shortLabel}</p>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">
+                      Progetto economicamente sostenibile solo se i parametri inseriti restano coerenti con le ipotesi: ricavi, costi, personale, investimenti, rate e liquidità.
+                    </p>
                   </div>
-                  <div className="rounded-lg bg-sky-50 p-4 ring-1 ring-sky-100">
-                    <p className="text-xs font-semibold uppercase text-sky-600">Incasso minimo</p>
-                    <p className="mt-2 lp-card-value-sm text-sky-950">{euro.format(kpis.breakEvenRevenue)}</p>
-                    <p className="mt-1 text-xs leading-5 text-sky-700">Fatturato mensile indicativo per non perdere denaro.</p>
-                  </div>
-                  <div className="rounded-lg bg-amber-50 p-4 ring-1 ring-amber-100">
-                    <p className="text-xs font-semibold uppercase text-amber-600">Clienti necessari</p>
-                    <p className="mt-2 lp-card-value-sm text-amber-950">{Math.ceil(breakEvenCustomersDaily).toLocaleString("it-IT")}/giorno</p>
-                    <p className="mt-1 text-xs leading-5 text-amber-700">Calcolati dalla spesa media per persona.</p>
-                  </div>
-                  <div className="rounded-lg bg-indigo-50 p-4 ring-1 ring-indigo-100">
-                    <p className="text-xs font-semibold uppercase text-indigo-600">Liquidità prevista</p>
-                    <p className="mt-2 lp-card-value-sm text-indigo-950">{euro.format(kpis.cashFlowMonthly * 12)}</p>
-                    <p className="mt-1 text-xs leading-5 text-indigo-700">Cassa stimata nei primi 12 mesi.</p>
+                  <div>
+                    <h2 className="text-2xl font-black tracking-tight text-slate-950 md:text-4xl">Il progetto sta in piedi?</h2>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
+                      Lettura rapida per capire incasso minimo, clienti necessari e liquidità prevista prima di presentare il progetto.
+                    </p>
+                    <div className="mt-5 grid gap-3 md:grid-cols-3">
+                      {[
+                        {
+                          label: "Incasso minimo",
+                          value: euro.format(kpis.breakEvenRevenue),
+                          helper: "Fatturato mensile per non perdere denaro.",
+                          className: "border-sky-200 bg-sky-50 text-sky-800",
+                        },
+                        {
+                          label: "Clienti necessari",
+                          value: Math.ceil(breakEvenCustomersDaily).toLocaleString("it-IT") + "/giorno",
+                          helper: "Calcolati dalla spesa media per persona.",
+                          className: "border-amber-200 bg-amber-50 text-amber-800",
+                        },
+                        {
+                          label: "Liquidità prevista",
+                          value: euro.format(kpis.cashFlowMonthly * 12),
+                          helper: "Cassa stimata nei primi 12 mesi.",
+                          className: "border-indigo-200 bg-indigo-50 text-indigo-800",
+                        },
+                      ].map((item) => (
+                        <div key={item.label} className={"min-w-0 rounded-xl border p-4 " + item.className}>
+                          <p className="text-xs font-black uppercase tracking-[0.12em]">{item.label}</p>
+                          <p className="mt-3 break-words text-2xl font-black tracking-tight text-slate-950">{item.value}</p>
+                          <p className="mt-2 text-sm leading-5 text-slate-600">{item.helper}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-slate-200">
-                <p className="font-semibold text-slate-950">Cosa migliorare subito</p>
-                <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
-                  {inputs.foodCostPct > 30 ? <p><strong className="text-amber-700">Costo materie prime:</strong> prova a ridurlo verso il 24-30%.</p> : <p><strong className="text-emerald-700">Costo materie prime:</strong> il valore è coerente con una gestione prudente.</p>}
-                  {kpis.laborPct > 34 ? <p><strong className="text-amber-700">Personale:</strong> il costo lavoro assorbe troppo fatturato.</p> : <p><strong className="text-emerald-700">Personale:</strong> incidenza sotto la soglia critica.</p>}
-                  {kpis.dscr < 1.2 ? <p><strong className="text-rose-700">Debito:</strong> la copertura delle rate è debole.</p> : <p><strong className="text-emerald-700">Debito:</strong> la copertura delle rate appare sostenibile.</p>}
+              <div className="border-t border-slate-200 bg-slate-50 p-5 md:p-6 xl:border-l xl:border-t-0">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Priorità</p>
+                    <h3 className="mt-2 text-2xl font-black text-slate-950">Cosa migliorare subito</h3>
+                  </div>
+                  <span className={"rounded-full px-3 py-1 text-xs font-bold ring-1 " + status.className}>{status.shortLabel}</span>
                 </div>
-                <button type="button" onClick={() => setActivePage("report")} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700">
+                <div className="mt-5 grid gap-3">
+                  {[
+                    inputs.foodCostPct > 30
+                      ? { title: "Costo materie prime", text: "Prova a ridurlo verso il 24-30%.", tone: "amber" }
+                      : { title: "Costo materie prime", text: "Il valore è coerente con una gestione prudente.", tone: "emerald" },
+                    kpis.laborPct > 34
+                      ? { title: "Personale", text: "Il costo lavoro assorbe troppo fatturato.", tone: "amber" }
+                      : { title: "Personale", text: "Incidenza sotto la soglia critica.", tone: "emerald" },
+                    kpis.dscr < 1.2
+                      ? { title: "Debito", text: "La copertura delle rate è debole.", tone: "rose" }
+                      : { title: "Debito", text: "La copertura delle rate appare sostenibile.", tone: "emerald" },
+                  ].map((item) => (
+                    <div key={item.title} className="flex gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                      <span className={"mt-1 h-3 w-3 shrink-0 rounded-full " + (item.tone === "rose" ? "bg-rose-500" : item.tone === "amber" ? "bg-amber-500" : "bg-emerald-500")} />
+                      <p className="text-sm leading-6 text-slate-600">
+                        <strong className={item.tone === "rose" ? "text-rose-700" : item.tone === "amber" ? "text-amber-700" : "text-emerald-700"}>{item.title}:</strong> {item.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setActivePage("report")} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800">
                   Vai al report
                   <ArrowRight className="h-4 w-4" />
                 </button>
