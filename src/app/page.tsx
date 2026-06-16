@@ -2295,7 +2295,7 @@ export default function Home() {
     if (supabase) {
       await supabase.auth.signOut();
     }
-    window.location.href = "/login";
+    window.location.href = PILOT_SUITE_URL;
   }
 
   function markStepDirty(stepIndex: number) {

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+const PILOT_SUITE_URL = process.env.NEXT_PUBLIC_PILOT_SUITE_URL ?? "https://master-admin-suite.vercel.app/programmi";
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "recover">("login");
   const [email, setEmail] = useState("");
@@ -39,11 +41,11 @@ export default function LoginPage() {
       <section className="mx-auto grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm lg:grid-cols-[1fr_440px]">
         <div className="flex min-h-[620px] flex-col justify-between bg-gradient-to-br from-[#eef7ff] via-white to-[#edfdf8] p-8 text-slate-950">
           <Link
-            href="/"
+            href={PILOT_SUITE_URL}
             className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-teal-700"
           >
             <ArrowLeft className="h-4 w-4" />
-            Torna alla dashboard
+            Torna alla pagina prodotti
           </Link>
           <div>
             <div className="mb-6 rounded-lg bg-white p-4">
